@@ -1,0 +1,911 @@
+{
+	"folders": [
+		{
+			"name": "ChaosRifts",
+			"path": "."
+		},
+		{
+			"name": "UE5",
+			"path": "/opt/unreal-engine"
+		}
+	],
+	"settings": {
+		"typescript.tsc.autoDetect": "off",
+		"npm.autoDetect": "off",
+		"terminal.integrated.env.linux": {
+			"PATH": "/opt/unreal-engine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-x64:${env:PATH}",
+			"DOTNET_ROOT": "/opt/unreal-engine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-x64",
+			"DOTNET_HOST_PATH": "/opt/unreal-engine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-x64/dotnet",
+			"DOTNET_MULTILEVEL_LOOKUP": "0",
+			"DOTNET_ROLL_FORWARD": "LatestMajor"
+		}
+	},
+	"extensions": {
+		"recommendations": [
+			"ms-vscode.cpptools",
+			"ms-dotnettools.csharp"
+		]
+	},
+	"tasks": {
+		"version": "2.0.0",
+		"tasks": [
+			{
+				"label": "ChaosRifts Linux Debug Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Debug",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Debug Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Debug",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRifts Linux Debug Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Debug Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Debug",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux DebugGame Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"DebugGame",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux DebugGame Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"DebugGame",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRifts Linux DebugGame Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux DebugGame Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"DebugGame",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Development Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Development",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Development Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Development",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRifts Linux Development Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Development Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Development",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Test Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Test",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Test Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Test",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRifts Linux Test Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Test Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Test",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Shipping Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Shipping",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Shipping Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Shipping",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRifts Linux Shipping Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts Linux Shipping Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"Linux",
+					"Shipping",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Debug Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Debug",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Debug Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Debug",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRifts LinuxArm64 Debug Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Debug Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Debug",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 DebugGame Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"DebugGame",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 DebugGame Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"DebugGame",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRifts LinuxArm64 DebugGame Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 DebugGame Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"DebugGame",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Development Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Development",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Development Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Development",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRifts LinuxArm64 Development Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Development Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Development",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Test Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Test",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Test Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Test",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRifts LinuxArm64 Test Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Test Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Test",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Shipping Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Shipping",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Shipping Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Shipping",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRifts LinuxArm64 Shipping Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRifts LinuxArm64 Shipping Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRifts",
+					"LinuxArm64",
+					"Shipping",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRiftsEditor Linux Debug Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRiftsEditor",
+					"Linux",
+					"Debug",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRiftsEditor Linux Debug Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRiftsEditor",
+					"Linux",
+					"Debug",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRiftsEditor Linux Debug Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRiftsEditor Linux Debug Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRiftsEditor",
+					"Linux",
+					"Debug",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRiftsEditor Linux DebugGame Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRiftsEditor",
+					"Linux",
+					"DebugGame",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRiftsEditor Linux DebugGame Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRiftsEditor",
+					"Linux",
+					"DebugGame",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRiftsEditor Linux DebugGame Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRiftsEditor Linux DebugGame Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRiftsEditor",
+					"Linux",
+					"DebugGame",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRiftsEditor Linux Development Build",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRiftsEditor",
+					"Linux",
+					"Development",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRiftsEditor Linux Development Rebuild",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRiftsEditor",
+					"Linux",
+					"Development",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex"
+				],
+				"problemMatcher": "$msCompile",
+				"dependsOn": [
+					"ChaosRiftsEditor Linux Development Clean"
+				],
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			},
+			{
+				"label": "ChaosRiftsEditor Linux Development Clean",
+				"group": "build",
+				"command": "Engine/Build/BatchFiles/Linux/Build.sh",
+				"args": [
+					"ChaosRiftsEditor",
+					"Linux",
+					"Development",
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-waitmutex",
+					"-clean"
+				],
+				"problemMatcher": "$msCompile",
+				"type": "shell",
+				"options": {
+					"cwd": "/opt/unreal-engine"
+				}
+			}
+		]
+	},
+	"launch": {
+		"version": "0.2.0",
+		"configurations": [
+			{
+				"name": "Launch ChaosRifts (Debug)",
+				"request": "launch",
+				"program": "/mnt/unreal/ChaosRifts/Binaries/Linux/UnrealGame-Linux-Debug",
+				"preLaunchTask": "ChaosRifts Linux Debug Build",
+				"args": [
+				],
+				"cwd": "/opt/unreal-engine",
+				"type": "cppdbg",
+				"visualizerFile": "/opt/unreal-engine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+				"showDisplayString": true,
+				"sourceFileMap": {
+					"/UEVFS/ChaosRifts": "/mnt/unreal/ChaosRifts",
+					"/UEVFS/Root": "/opt/unreal-engine"
+				}
+			},
+			{
+				"name": "Launch ChaosRifts (DebugGame)",
+				"request": "launch",
+				"program": "/mnt/unreal/ChaosRifts/Binaries/Linux/UnrealGame-Linux-DebugGame",
+				"preLaunchTask": "ChaosRifts Linux DebugGame Build",
+				"args": [
+				],
+				"cwd": "/opt/unreal-engine",
+				"type": "cppdbg",
+				"visualizerFile": "/opt/unreal-engine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+				"showDisplayString": true,
+				"sourceFileMap": {
+					"/UEVFS/ChaosRifts": "/mnt/unreal/ChaosRifts",
+					"/UEVFS/Root": "/opt/unreal-engine"
+				}
+			},
+			{
+				"name": "Launch ChaosRifts (Development)",
+				"request": "launch",
+				"program": "/mnt/unreal/ChaosRifts/Binaries/Linux/UnrealGame",
+				"preLaunchTask": "ChaosRifts Linux Development Build",
+				"args": [
+				],
+				"cwd": "/opt/unreal-engine",
+				"type": "cppdbg",
+				"visualizerFile": "/opt/unreal-engine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+				"showDisplayString": true,
+				"sourceFileMap": {
+					"/UEVFS/ChaosRifts": "/mnt/unreal/ChaosRifts",
+					"/UEVFS/Root": "/opt/unreal-engine"
+				}
+			},
+			{
+				"name": "Launch ChaosRifts (Test)",
+				"request": "launch",
+				"program": "/mnt/unreal/ChaosRifts/Binaries/Linux/UnrealGame-Linux-Test",
+				"preLaunchTask": "ChaosRifts Linux Test Build",
+				"args": [
+				],
+				"cwd": "/opt/unreal-engine",
+				"type": "cppdbg",
+				"visualizerFile": "/opt/unreal-engine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+				"showDisplayString": true,
+				"sourceFileMap": {
+					"/UEVFS/ChaosRifts": "/mnt/unreal/ChaosRifts",
+					"/UEVFS/Root": "/opt/unreal-engine"
+				}
+			},
+			{
+				"name": "Launch ChaosRifts (Shipping)",
+				"request": "launch",
+				"program": "/mnt/unreal/ChaosRifts/Binaries/Linux/UnrealGame-Linux-Shipping",
+				"preLaunchTask": "ChaosRifts Linux Shipping Build",
+				"args": [
+				],
+				"cwd": "/opt/unreal-engine",
+				"type": "cppdbg",
+				"visualizerFile": "/opt/unreal-engine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+				"showDisplayString": true,
+				"sourceFileMap": {
+					"/UEVFS/ChaosRifts": "/mnt/unreal/ChaosRifts",
+					"/UEVFS/Root": "/opt/unreal-engine"
+				}
+			},
+			{
+				"name": "Launch ChaosRiftsEditor (Debug)",
+				"request": "launch",
+				"program": "/opt/unreal-engine/Engine/Binaries/Linux/UnrealEditor-Linux-Debug",
+				"preLaunchTask": "ChaosRiftsEditor Linux Debug Build",
+				"args": [
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject"
+				],
+				"cwd": "/opt/unreal-engine",
+				"type": "cppdbg",
+				"visualizerFile": "/opt/unreal-engine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+				"showDisplayString": true,
+				"sourceFileMap": {
+					"/UEVFS/ChaosRifts": "/mnt/unreal/ChaosRifts",
+					"/UEVFS/Root": "/opt/unreal-engine"
+				}
+			},
+			{
+				"name": "Launch ChaosRiftsEditor (DebugGame)",
+				"request": "launch",
+				"program": "/opt/unreal-engine/Engine/Binaries/Linux/UnrealEditor-Linux-DebugGame",
+				"preLaunchTask": "ChaosRiftsEditor Linux DebugGame Build",
+				"args": [
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject"
+				],
+				"cwd": "/opt/unreal-engine",
+				"type": "cppdbg",
+				"visualizerFile": "/opt/unreal-engine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+				"showDisplayString": true,
+				"sourceFileMap": {
+					"/UEVFS/ChaosRifts": "/mnt/unreal/ChaosRifts",
+					"/UEVFS/Root": "/opt/unreal-engine"
+				}
+			},
+			{
+				"name": "Launch ChaosRiftsEditor (Development)",
+				"request": "launch",
+				"program": "/opt/unreal-engine/Engine/Binaries/Linux/UnrealEditor",
+				"preLaunchTask": "ChaosRiftsEditor Linux Development Build",
+				"args": [
+					"/mnt/unreal/ChaosRifts/ChaosRifts.uproject"
+				],
+				"cwd": "/opt/unreal-engine",
+				"type": "cppdbg",
+				"visualizerFile": "/opt/unreal-engine/Engine/Extras/VisualStudioDebugging/Unreal.natvis",
+				"showDisplayString": true,
+				"sourceFileMap": {
+					"/UEVFS/ChaosRifts": "/mnt/unreal/ChaosRifts",
+					"/UEVFS/Root": "/opt/unreal-engine"
+				}
+			},
+			{
+				"name": "Generate Project Files",
+				"type": "coreclr",
+				"request": "launch",
+				"preLaunchTask": "UnrealBuildTool Linux Development Build",
+				"program": "/opt/unreal-engine/Engine/Build/BatchFiles/RunUBT.bat",
+				"args": [
+					"-projectfiles",
+					"-vscode",
+					"-project=/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-game",
+					"-engine",
+					"-dotnet"
+				],
+				"env": {
+					"PATH": "/opt/unreal-engine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-x64:${env:PATH}",
+					"DOTNET_ROOT": "/opt/unreal-engine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-x64",
+					"DOTNET_HOST_PATH": "/opt/unreal-engine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-x64/dotnet",
+					"DOTNET_MULTILEVEL_LOOKUP": "0",
+					"DOTNET_ROLL_FORWARD": "LatestMajor"
+				},
+				"console": "internalConsole",
+				"internalConsoleOptions": "openOnSessionStart",
+				"stopAtEntry": false,
+				"cwd": "/opt/unreal-engine"
+			}
+		]
+	}
+}
