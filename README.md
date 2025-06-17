@@ -26,7 +26,7 @@
 ## Getting Started with Development (for Contributors / Self-Reference)
 
 1.  **Clone the project:**
-    `git clone <URL to your GitHub Repo>`
+    `git clone https://github.com/Robinator9002/ChaosRifts`
 2.  **Unreal Engine Setup (Linux):**
     * Ensure Unreal Engine 5.6 (preferably the `unreal-engine-bin` AUR package for Arch Linux) is installed.
     * **Verify/Set Permissions:** `sudo chown -R <your_username>:<your_username> /opt/unreal-engine` (or wherever the engine is installed)
