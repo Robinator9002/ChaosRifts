@@ -18,7 +18,22 @@
 			"DOTNET_HOST_PATH": "/opt/unreal-engine/Engine/Binaries/ThirdParty/DotNet/8.0.300/linux-x64/dotnet",
 			"DOTNET_MULTILEVEL_LOOKUP": "0",
 			"DOTNET_ROLL_FORWARD": "LatestMajor"
-		}
+		},
+		"C_Cpp.default.intelliSenseMode": "linux-clang-x64",
+    	"C_Cpp.default.compilerPath": "/opt/unreal-engine/Engine/Extras/ThirdPartyNotUE/SDKs/HostLinux/Linux_x64v25_clang-18.1.0-rockylinux8/x86_64-unknown-linux-gnu/bin/clang",
+		"C_Cpp.default.cppStandard": "c++20",
+		"C_Cpp.default.cStandard": "c17",
+		"C_Cpp.default.compileCommands": "/mnt/unreal/ChaosRifts/compileCommands.json",
+		"C_Cpp.default.defines": [
+			"IS_PROGRAM=0",
+			"UE_EDITOR=1",
+			"ENABLE_LAUNCH_CHECKS=1",
+			"USE_LOGGING_IN_SHIPPING=1",
+			"WITH_EDITOR=1",
+			"UNICODE",
+			"_UNICODE",
+			"__clang__"
+		]
 	},
 	"extensions": {
 		"recommendations": [
@@ -889,6 +904,8 @@
 				"args": [
 					"-projectfiles",
 					"-vscode",
+					"-project=/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-game",
 					"-engine",
 					"-dotnet"
 				],
