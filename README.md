@@ -1,4 +1,5 @@
 # Chaos Rift: Daemon's Ascent
+[![Project Status: Active Development](https://img.shields.io/badge/status-active%20development-green.svg)](https://shields.io/)
 
 ## About the Game
 
