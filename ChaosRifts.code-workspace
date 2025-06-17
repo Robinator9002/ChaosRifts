@@ -20,7 +20,6 @@
 			"DOTNET_ROLL_FORWARD": "LatestMajor"
 		},
 		"C_Cpp.intelliSenseEngine": "default",
-		"C_Cpp.default.compileCommands": "/mnt/unreal/ChaosRifts/compile_commands.json"
 	},
 	"extensions": {
 		"recommendations": [
