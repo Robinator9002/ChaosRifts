@@ -1,6 +1,6 @@
 // Copyright Robinator Studios, Inc. All Rights Reserved.
 
-#include "ChaosGameMode.h"
+#include "Core/ChaosGameMode.h"
 
 AChaosGameMode::AChaosGameMode()
 {

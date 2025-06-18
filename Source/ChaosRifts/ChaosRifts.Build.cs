@@ -24,12 +24,6 @@ public class ChaosRifts : ModuleRules
 
 		PublicIncludePaths.AddRange(new string[] {
 			"ChaosRifts",
-			"ChaosRifts/Variant_Platforming",
-			"ChaosRifts/Variant_Combat",
-			"ChaosRifts/Variant_Combat/AI",
-			"ChaosRifts/Variant_SideScrolling",
-			"ChaosRifts/Variant_SideScrolling/Gameplay",
-			"ChaosRifts/Variant_SideScrolling/AI"
 		});
 
 		// Uncomment if you are using Slate UI

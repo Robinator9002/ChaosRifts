@@ -1,6 +1,6 @@
 // Copyright Robinator Studios, Inc. All Rights Reserved.
 
-#include "ChaosCharacter.h"
+#include "Characters/Player/ChaosCharacter.h"
 #include "Engine/LocalPlayer.h"
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
@@ -51,7 +51,7 @@ AChaosCharacter::AChaosCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 }
 
-void AChaosRiftsCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AChaosCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	// Set up action bindings
 	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent)) {
@@ -61,11 +61,11 @@ void AChaosRiftsCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 
 		// Moving
-		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AChaosRiftsCharacter::Move);
-		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AChaosRiftsCharacter::Look);
+		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AChaosCharacter::Move);
+		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AChaosCharacter::Look);
 
 		// Looking
-		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AChaosRiftsCharacter::Look);
+		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AChaosCharacter::Look);
 	}
 	else
 	{
@@ -73,7 +73,7 @@ void AChaosRiftsCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInpu
 	}
 }
 
-void AChaosRiftsCharacter::Move(const FInputActionValue& Value)
+void AChaosCharacter::Move(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D MovementVector = Value.Get<FVector2D>();
@@ -82,7 +82,7 @@ void AChaosRiftsCharacter::Move(const FInputActionValue& Value)
 	DoMove(MovementVector.X, MovementVector.Y);
 }
 
-void AChaosRiftsCharacter::Look(const FInputActionValue& Value)
+void AChaosCharacter::Look(const FInputActionValue& Value)
 {
 	// input is a Vector2D
 	FVector2D LookAxisVector = Value.Get<FVector2D>();
@@ -91,7 +91,7 @@ void AChaosRiftsCharacter::Look(const FInputActionValue& Value)
 	DoLook(LookAxisVector.X, LookAxisVector.Y);
 }
 
-void AChaosRiftsCharacter::DoMove(float Right, float Forward)
+void AChaosCharacter::DoMove(float Right, float Forward)
 {
 	if (GetController() != nullptr)
 	{
@@ -111,7 +111,7 @@ void AChaosRiftsCharacter::DoMove(float Right, float Forward)
 	}
 }
 
-void AChaosRiftsCharacter::DoLook(float Yaw, float Pitch)
+void AChaosCharacter::DoLook(float Yaw, float Pitch)
 {
 	if (GetController() != nullptr)
 	{
@@ -121,13 +121,13 @@ void AChaosRiftsCharacter::DoLook(float Yaw, float Pitch)
 	}
 }
 
-void AChaosRiftsCharacter::DoJumpStart()
+void AChaosCharacter::DoJumpStart()
 {
 	// signal the character to jump
 	Jump();
 }
 
-void AChaosRiftsCharacter::DoJumpEnd()
+void AChaosCharacter::DoJumpEnd()
 {
 	// signal the character to stop jumping
 	StopJumping();
