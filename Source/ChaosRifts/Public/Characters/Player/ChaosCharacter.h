@@ -15,6 +15,16 @@ struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogChaosCharacter, Log, All);
 
+// Enum für die verschiedenen Phasen des Mantling
+UENUM(BlueprintType)
+enum class EMantleState : uint8
+{
+	None,
+	Reaching,
+	PushingForward
+};
+
+
 /**
  * Base class for the player character.
  */
@@ -28,6 +38,7 @@ public:
 
 protected:
 	//~ Begin AActor Interface
+	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaTime) override;
 	//~ End AActor Interface
 	
@@ -36,11 +47,9 @@ protected:
 	//~ End APawn Interface
 
 private:
-	/** Camera boom, positions camera behind the character. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
-	/** Follow camera attached to the boom. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCameraComponent> FollowCamera;
 	
@@ -67,7 +76,6 @@ protected:
 	void StartDash();
 
 public:
-	// --- Blueprint Callable Input Functions ---
 	UFUNCTION(BlueprintCallable, Category="Chaos|Input")
 	virtual void DoMove(float Right, float Forward);
 
@@ -97,7 +105,7 @@ protected:
 
 	// --- Vaulting Properties ---
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
-	float VaultTraceDistance = 100.f;
+	float VaultTraceDistance = 120.f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
 	float MinVaultHeight = 50.f;
@@ -107,6 +115,9 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
 	float VaultLerpSpeed = 15.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	float VaultCooldownDuration = 0.5f;
 	
 private:
 	// --- Dash System ---
@@ -120,11 +131,20 @@ private:
 
 	// --- Vault System ---
 	void TickVaultCheck(float DeltaTime);
-	void PerformVault(const FVector& VaultStart, const FVector& VaultEnd);
+	void PerformMantle(const FVector& LandingTarget, const FVector& LedgePosition);
+	void TickMantle(float DeltaTime);
+	void EndMantle();
+	void ResetVaultCooldown();
 	
 	bool bIsVaulting = false;
-	FVector VaultTargetLocation;
-	float ForwardInputValue = 0.f; // Cached input value for vault check
+	bool bCanCheckVault = true;
+	FVector MantleTargetLocation;
+	FVector MantleLedgeLocation;
+	EMantleState CurrentMantleState = EMantleState::None;
+	
+	float ForwardInputValue = 0.f;
+	float DefaultGravityScale = 1.f;
+	FTimerHandle TimerHandle_VaultCooldown;
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
