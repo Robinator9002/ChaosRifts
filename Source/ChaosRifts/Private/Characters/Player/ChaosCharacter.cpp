@@ -150,6 +150,14 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 	{
 		return;
 	}
+    
+    // NEU: Prüfen, ob der Spieler in die Richtung schaut, in die er sich bewegt.
+    const FVector CameraDirection = FollowCamera->GetForwardVector().GetSafeNormal();
+    const FVector ActorDirection = GetActorForwardVector().GetSafeNormal();
+    if (FVector::DotProduct(CameraDirection, ActorDirection) < VaultActivationDotProduct)
+    {
+        return; // Der Spieler schaut zu weit weg, kein Vault.
+    }
 
 	const FVector ActorLocation = GetActorLocation();
 	const FVector ForwardVector = GetActorForwardVector();
@@ -194,16 +202,20 @@ void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector&
 	bIsVaulting = true;
 	CurrentMantleState = EMantleState::Reaching;
 	MantleTargetLocation = LandingTarget;
+
+	// NEU: Eingehende Geschwindigkeit für den Boost nach dem Vault speichern
+    const FVector HorizontalVelocity = GetCharacterMovement()->Velocity;
+    MantleExitSpeed = HorizontalVelocity.Size2D(); // Size2D ignoriert die Z-Achse (Fallen/Springen)
 	
 	// Erstelle den ersten Punkt des Mantles: hoch zur Kante
 	MantleLedgeLocation = LedgePosition;
-	MantleLedgeLocation.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight(); // Auf Höhe der Kante
-	MantleLedgeLocation += GetActorForwardVector() * 5.f; // Ein kleines bisschen davor
+	MantleLedgeLocation.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+	MantleLedgeLocation += GetActorForwardVector() * 5.f;
 
 	GetCharacterMovement()->SetMovementMode(MOVE_Flying);
 	GetCharacterMovement()->Velocity = FVector::ZeroVector;
 	GetCharacterMovement()->GravityScale = 0.0f;
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore); // KOLLISION AUS!
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore);
 
 	UE_LOG(LogChaosCharacter, Warning, TEXT("MANTLE GESTARTET!"));
 }
@@ -215,17 +227,14 @@ void AChaosCharacter::TickMantle(float DeltaTime)
 	if(CurrentMantleState == EMantleState::Reaching)
 	{
 		CurrentTarget = MantleLedgeLocation;
-		// Wenn wir fast an der Kante sind, wechsle zum nächsten Zustand
 		if(FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f)
 		{
 			CurrentMantleState = EMantleState::PushingForward;
-			UE_LOG(LogChaosCharacter, Log, TEXT("Mantle: Reaching -> PushingForward"));
 		}
 	}
 	else // PushingForward
 	{
 		CurrentTarget = MantleTargetLocation;
-		// Wenn wir fast am Ziel sind, beende den Mantle
 		if(FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f)
 		{
 			EndMantle();
@@ -244,13 +253,18 @@ void AChaosCharacter::EndMantle()
 	
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	GetCharacterMovement()->GravityScale = DefaultGravityScale;
-	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block); // KOLLISION AN!
+	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
+    
+    // NEU: Geschwindigkeit nach dem Vault anwenden
+    const float FinalSpeed = FMath::Max(MantleExitSpeed * MantleSpeedMultiplier, MantleMinExitSpeed);
+    const FVector ExitLaunchVelocity = GetActorForwardVector() * FinalSpeed;
+    LaunchCharacter(ExitLaunchVelocity, false, false);
+
+	UE_LOG(LogChaosCharacter, Log, TEXT("Mantle beendet mit Geschwindigkeit: %f"), FinalSpeed);
 
 	// Starte Cooldown
 	bCanCheckVault = false;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle_VaultCooldown, this, &AChaosCharacter::ResetVaultCooldown, VaultCooldownDuration, false);
-
-	UE_LOG(LogChaosCharacter, Warning, TEXT("MANTLE BEENDET!"));
 }
 
 void AChaosCharacter::ResetVaultCooldown()

@@ -118,6 +118,17 @@ protected:
 
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
 	float VaultCooldownDuration = 0.5f;
+
+	// NEU: Wie genau muss der Spieler auf die Kante schauen? (Dot Product, 1 = genau drauf, 0.7 = sehr tolerant)
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault", meta = (ClampMin = "0.7", ClampMax = "1.0"))
+	float VaultActivationDotProduct = 0.9f;
+	
+	// NEU: Geschwindigkeits-Boost nach dem Vault
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	float MantleMinExitSpeed = 400.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	float MantleSpeedMultiplier = 1.1f;
 	
 private:
 	// --- Dash System ---
@@ -145,6 +156,9 @@ private:
 	float ForwardInputValue = 0.f;
 	float DefaultGravityScale = 1.f;
 	FTimerHandle TimerHandle_VaultCooldown;
+	
+	// NEU: Variable zum Speichern der Geschwindigkeit
+	float MantleExitSpeed = 0.f;
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
