@@ -889,6 +889,8 @@
 				"args": [
 					"-projectfiles",
 					"-vscode",
+					"-project=/mnt/unreal/ChaosRifts/ChaosRifts.uproject",
+					"-game",
 					"-engine",
 					"-dotnet"
 				],
