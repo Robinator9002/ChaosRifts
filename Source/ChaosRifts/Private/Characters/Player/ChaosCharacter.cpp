@@ -255,13 +255,6 @@ void AChaosCharacter::EndMantle()
 	GetCharacterMovement()->GravityScale = DefaultGravityScale;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
     
-    // NEU: Geschwindigkeit nach dem Vault anwenden
-    const float FinalSpeed = FMath::Max(MantleExitSpeed * MantleSpeedMultiplier, MantleMinExitSpeed);
-    const FVector ExitLaunchVelocity = GetActorForwardVector() * FinalSpeed;
-    LaunchCharacter(ExitLaunchVelocity, false, false);
-
-	UE_LOG(LogChaosCharacter, Log, TEXT("Mantle beendet mit Geschwindigkeit: %f"), FinalSpeed);
-
 	// Starte Cooldown
 	bCanCheckVault = false;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle_VaultCooldown, this, &AChaosCharacter::ResetVaultCooldown, VaultCooldownDuration, false);
