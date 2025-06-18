@@ -9,87 +9,99 @@
 
 class USpringArmComponent;
 class UCameraComponent;
+class UInputComponent;
 class UInputAction;
 struct FInputActionValue;
 
-DECLARE_LOG_CATEGORY_EXTERN(LogTemplateCharacter, Log, All);
+DECLARE_LOG_CATEGORY_EXTERN(LogChaosCharacter, Log, All);
 
 /**
- *  A simple player-controllable third person character
- *  Implements a controllable orbiting camera
+ * Base class for the player character.
  */
 UCLASS(abstract)
 class AChaosCharacter : public ACharacter
 {
 	GENERATED_BODY()
 
-	/** Camera boom positioning the camera behind the character */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	USpringArmComponent* CameraBoom;
+public:
+	AChaosCharacter();
 
-	/** Follow camera */
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera, meta = (AllowPrivateAccess = "true"))
-	UCameraComponent* FollowCamera;
+protected:
+	//~ Begin APawn Interface
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+	//~ End APawn Interface
+
+private:
+	/** Camera boom, positions camera behind the character. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Camera", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<USpringArmComponent> CameraBoom;
+
+	/** Follow camera attached to the boom. */
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Camera", meta = (AllowPrivateAccess = "true"))
+	TObjectPtr<UCameraComponent> FollowCamera;
 	
 protected:
+	// --- Input Actions ---
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
+	TObjectPtr<UInputAction> JumpAction;
 
-	/** Jump Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
-	UInputAction* JumpAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
+	TObjectPtr<UInputAction> MoveAction;
 
-	/** Move Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
-	UInputAction* MoveAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
+	TObjectPtr<UInputAction> LookAction;
 
-	/** Look Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
-	UInputAction* LookAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
+	TObjectPtr<UInputAction> MouseLookAction;
 
-	/** Mouse Look Input Action */
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Input")
-	UInputAction* MouseLookAction;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
+	TObjectPtr<UInputAction> DashAction;
 
-public:
-
-	/** Constructor */
-	AChaosCharacter();	
-
-protected:
-
-	/** Initialize input action bindings */
-	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
-protected:
-
-	/** Called for movement input */
+	// --- Input Handlers ---
 	void Move(const FInputActionValue& Value);
-
-	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+	void StartDash();
 
 public:
-
-	/** Handles move inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
+	// --- Blueprint Callable Input Functions ---
+	UFUNCTION(BlueprintCallable, Category="Chaos|Input")
 	virtual void DoMove(float Right, float Forward);
 
-	/** Handles look inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
+	UFUNCTION(BlueprintCallable, Category="Chaos|Input")
 	virtual void DoLook(float Yaw, float Pitch);
 
-	/** Handles jump pressed inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoJumpStart();
+protected:
+	// --- Core Movement Properties ---
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Movement")
+	float MovementSpeedDefault = 1000.f;
 
-	/** Handles jump pressed inputs from either controls or UI interfaces */
-	UFUNCTION(BlueprintCallable, Category="Input")
-	virtual void DoJumpEnd();
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Movement")
+	float JumpVelocityDefault = 800.f;
+
+	// --- Dash Properties ---
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Dash")
+	float DashImpulse = 4000.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Dash")
+	float DashCooldown = 1.0f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Dash")
+	float PostDashSpeedBoostMultiplier = 1.3f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Dash")
+	float PostDashSpeedBoostDuration = 1.0f;
+	
+private:
+	// --- Dash System ---
+	void ResetDashCooldown();
+	void ApplyPostDashSpeedBoost();
+	void ResetMovementSpeed();
+	
+	bool bCanDash = true;
+	FTimerHandle TimerHandle_DashCooldown;
+	FTimerHandle TimerHandle_PostDashSpeed;
 
 public:
-
-	/** Returns CameraBoom subobject **/
-	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
-
-	/** Returns FollowCamera subobject **/
-	FORCEINLINE class UCameraComponent* GetFollowCamera() const { return FollowCamera; }
+	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 };
