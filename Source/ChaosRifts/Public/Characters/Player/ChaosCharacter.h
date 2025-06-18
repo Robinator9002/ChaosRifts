@@ -27,6 +27,10 @@ public:
 	AChaosCharacter();
 
 protected:
+	//~ Begin AActor Interface
+	virtual void Tick(float DeltaTime) override;
+	//~ End AActor Interface
+	
 	//~ Begin APawn Interface
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	//~ End APawn Interface
@@ -90,6 +94,19 @@ protected:
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Dash")
 	float PostDashSpeedBoostDuration = 1.0f;
+
+	// --- Vaulting Properties ---
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	float VaultTraceDistance = 100.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	float MinVaultHeight = 50.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	float MaxVaultHeight = 150.f;
+	
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	float VaultLerpSpeed = 15.f;
 	
 private:
 	// --- Dash System ---
@@ -100,6 +117,14 @@ private:
 	bool bCanDash = true;
 	FTimerHandle TimerHandle_DashCooldown;
 	FTimerHandle TimerHandle_PostDashSpeed;
+
+	// --- Vault System ---
+	void TickVaultCheck(float DeltaTime);
+	void PerformVault(const FVector& VaultStart, const FVector& VaultEnd);
+	
+	bool bIsVaulting = false;
+	FVector VaultTargetLocation;
+	float ForwardInputValue = 0.f; // Cached input value for vault check
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
