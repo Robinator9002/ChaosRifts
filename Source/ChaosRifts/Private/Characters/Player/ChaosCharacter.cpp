@@ -228,7 +228,7 @@ void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector&
     const FVector HorizontalVelocity = GetCharacterMovement()->Velocity;
     MantleExitSpeed = HorizontalVelocity.Size2D();
 	
-	MantleLedgeLocation = LedgePosition;
+	MantleLedgeLocation = LedgePosition;	float MantleLerpSpeed = 2.f;
 	MantleLedgeLocation.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	MantleLedgeLocation += GetActorForwardVector() * 5.f;
 
