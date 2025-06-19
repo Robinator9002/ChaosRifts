@@ -144,12 +144,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle", meta = (ClampMin = "0.7", ClampMax = "1.0"))
 	float MantleActivationDotProduct = 0.8f;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
-	float MantleMinExitSpeed = 400.f;
-
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
-	float MantleSpeedMultiplier = 1.2f;
-    
     UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
     float MantleFastSpeedThreshold = 600.f;
     

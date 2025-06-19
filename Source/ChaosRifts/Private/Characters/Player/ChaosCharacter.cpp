@@ -235,7 +235,6 @@ void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector&
 	MantleTargetLocation = LandingTarget;
 
     const FVector HorizontalVelocity = GetCharacterMovement()->Velocity;
-    MantleExitSpeed = HorizontalVelocity.Size2D();
 	
 	MantleLedgeLocation = LedgePosition;
 	MantleLedgeLocation.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
@@ -286,10 +285,6 @@ void AChaosCharacter::EndMantle()
 	GetCharacterMovement()->GravityScale = DefaultGravityScale;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
     
-    const float FinalSpeed = FMath::Max(MantleExitSpeed * MantleSpeedMultiplier, MantleMinExitSpeed);
-    const FVector ExitLaunchVelocity = GetActorForwardVector() * FinalSpeed;
-    LaunchCharacter(ExitLaunchVelocity, false, false);
-
 	bCanCheckVault = false;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle_VaultCooldown, this, &AChaosCharacter::ResetVaultCooldown, MantleCooldownDuration, false);
 }
