@@ -59,7 +59,7 @@ void AChaosCharacter::Tick(float DeltaTime)
 
 	if (bIsVaulting)
 	{
-		TickMantle(DeltaTime, MantleLerpSpeed);
+		TickMantle(DeltaTime); // Parameter entfernt, da MantleLerpSpeed jetzt eine Klassenvariable ist.
 	}
 	else if (bCanCheckVault)
 	{
@@ -69,6 +69,17 @@ void AChaosCharacter::Tick(float DeltaTime)
     if (bIsSliding && GetCharacterMovement()->Velocity.SizeSquared2D() < FMath::Square(SlideMinSpeed))
     {
         StopSlide();
+    }
+
+    // NEU: Logik zum Abbrechen der Dash-Montage, wenn der Spieler abrupt stoppt.
+    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+    if (DashMontage && AnimInstance && AnimInstance->Montage_IsPlaying(DashMontage))
+    {
+        if (GetCharacterMovement()->Velocity.SizeSquared2D() < FMath::Square(1.0f))
+        {
+            // Stoppt die Montage sanft, damit es nicht zu abgehackt aussieht.
+            AnimInstance->Montage_Stop(0.2f, DashMontage);
+        }
     }
 }
 
@@ -159,7 +170,7 @@ void AChaosCharacter::ResetDashCooldown()
 	bCanDash = true;
 }
 
-// --- Vault System ---
+// --- Mantle System ---
 void AChaosCharacter::TickVaultCheck(float DeltaTime)
 {
 	if (!GetCharacterMovement()->IsFalling() || ForwardInputValue < 0.1f)
@@ -211,11 +222,9 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 
 void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector& LedgePosition)
 {
-    // Hier ist die neue Logik zur Auswahl der Montage
     UAnimMontage* MontageToPlay = GetSpeed() > MantleFastSpeedThreshold ? MantleMontage_Fast : MantleMontage_Normal;
     if (MontageToPlay)
     {
-        // Wir speichern die gerade laufende Montage, um sie in TickMantle abfragen zu können
         CurrentMantleMontage = MontageToPlay;
         PlayAnimMontage(CurrentMantleMontage);
     }
@@ -228,7 +237,7 @@ void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector&
     const FVector HorizontalVelocity = GetCharacterMovement()->Velocity;
     MantleExitSpeed = HorizontalVelocity.Size2D();
 	
-	MantleLedgeLocation = LedgePosition;	float MantleLerpSpeed = 2.f;
+	MantleLedgeLocation = LedgePosition;
 	MantleLedgeLocation.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	MantleLedgeLocation += GetActorForwardVector() * 5.f;
 
@@ -238,7 +247,7 @@ void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector&
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore);
 }
 
-void AChaosCharacter::TickMantle(float DeltaTime, float MantleLerpSpeed)
+void AChaosCharacter::TickMantle(float DeltaTime)
 {
 	FVector CurrentTarget;
 	

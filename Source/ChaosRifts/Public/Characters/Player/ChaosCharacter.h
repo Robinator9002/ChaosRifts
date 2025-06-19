@@ -119,7 +119,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Dash")
 	float PostDashSpeedBoostDuration = 1.0f;
 
-	// --- Vaulting Properties ---
+	// --- Mantling Properties ---
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleTraceDistance = 200.f;
 	
@@ -150,7 +150,6 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleSpeedMultiplier = 1.2f;
     
-    // NEU: Schwellenwert, ab welcher Geschwindigkeit der schnelle Vault genutzt wird
     UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
     float MantleFastSpeedThreshold = 600.f;
     
@@ -171,7 +170,6 @@ protected:
     UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
     TObjectPtr<UAnimMontage> MantleMontage_Normal;
     
-    // NEU: Eigene Montage für den schnellen Vault
     UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
     TObjectPtr<UAnimMontage> MantleMontage_Fast;
 	
@@ -185,10 +183,10 @@ private:
 	FTimerHandle TimerHandle_DashCooldown;
 	FTimerHandle TimerHandle_PostDashSpeed;
 
-	// --- Vault System ---
+	// --- Mantle System ---
 	void TickVaultCheck(float DeltaTime);
 	void PerformMantle(const FVector& LandingTarget, const FVector& LedgePosition);
-	void TickMantle(float DeltaTime, float MantleLerpSpeed);
+	void TickMantle(float DeltaTime); // Parameter entfernt
 	void EndMantle();
 	void ResetVaultCooldown();
 	
@@ -197,7 +195,6 @@ private:
 	FVector MantleTargetLocation;
 	FVector MantleLedgeLocation;
 	EMantleState CurrentMantleState = EMantleState::None;
-    // NEU: Zeiger, um die gerade laufende Montage zu speichern
     TObjectPtr<UAnimMontage> CurrentMantleMontage;
 	
 	float ForwardInputValue = 0.f;
