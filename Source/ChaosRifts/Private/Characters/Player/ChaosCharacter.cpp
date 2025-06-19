@@ -10,7 +10,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Kismet/KismetSystemLibrary.h" // Needed for Trace functions
+#include "Kismet/KismetSystemLibrary.h" 
+#include "Animation/AnimInstance.h" // NEU: Für Animationen benötigt
 
 DEFINE_LOG_CATEGORY(LogChaosCharacter);
 
@@ -32,6 +33,7 @@ AChaosCharacter::AChaosCharacter()
 	GetCharacterMovement()->MinAnalogWalkSpeed = 50.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 4000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 2500.0f;
+    GetCharacterMovement()->bCanWalkOffLedgesWhenCrouching = true;
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
@@ -47,6 +49,7 @@ void AChaosCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	DefaultGravityScale = GetCharacterMovement()->GravityScale;
+    DefaultCapsuleHalfHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
 }
 
 
@@ -62,6 +65,11 @@ void AChaosCharacter::Tick(float DeltaTime)
 	{
 		TickVaultCheck(DeltaTime);
 	}
+    
+    if (bIsSliding && GetCharacterMovement()->Velocity.SizeSquared2D() < FMath::Square(SlideMinSpeed))
+    {
+        StopSlide();
+    }
 }
 
 void AChaosCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -73,6 +81,8 @@ void AChaosCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AChaosCharacter::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AChaosCharacter::Look);
 		EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &AChaosCharacter::StartDash);
+        EnhancedInputComponent->BindAction(SlideAction, ETriggerEvent::Started, this, &AChaosCharacter::StartSlide);
+        EnhancedInputComponent->BindAction(SlideAction, ETriggerEvent::Completed, this, &AChaosCharacter::StopSlide);
 	}
 	else
 	{
@@ -120,10 +130,20 @@ void AChaosCharacter::DoLook(float Yaw, float Pitch)
 void AChaosCharacter::StartDash()
 {
 	if (!bCanDash || bIsVaulting) { return; }
-	bCanDash = false;
-	LaunchCharacter(GetActorForwardVector() * DashImpulse, true, true);
-	ApplyPostDashSpeedBoost();
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle_DashCooldown, this, &AChaosCharacter::ResetDashCooldown, DashCooldown, false);
+    
+    // NEU: Animation Montage für den Dash abspielen
+    if (DashMontage)
+    {
+        PlayAnimMontage(DashMontage);
+    }
+    else
+    {
+        // Fallback, falls keine Montage zugewiesen ist
+	    bCanDash = false;
+	    LaunchCharacter(GetActorForwardVector() * DashImpulse, true, true);
+	    ApplyPostDashSpeedBoost();
+	    GetWorld()->GetTimerManager().SetTimer(TimerHandle_DashCooldown, this, &AChaosCharacter::ResetDashCooldown, DashCooldown, false);
+    }
 }
 
 void AChaosCharacter::ApplyPostDashSpeedBoost()
@@ -151,12 +171,11 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 		return;
 	}
     
-    // NEU: Prüfen, ob der Spieler in die Richtung schaut, in die er sich bewegt.
     const FVector CameraDirection = FollowCamera->GetForwardVector().GetSafeNormal();
     const FVector ActorDirection = GetActorForwardVector().GetSafeNormal();
     if (FVector::DotProduct(CameraDirection, ActorDirection) < VaultActivationDotProduct)
     {
-        return; // Der Spieler schaut zu weit weg, kein Vault.
+        return;
     }
 
 	const FVector ActorLocation = GetActorLocation();
@@ -165,7 +184,6 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 	const float CapsuleHalfHeight = GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	FHitResult FrontHit, LedgeHit, LandingSpaceHit;
 
-	// 1. & 2. TRACE: Ist eine Wand vor uns UND ist darüber Platz?
 	FVector FrontTraceStart = ActorLocation;
 	FrontTraceStart.Z -= CapsuleHalfHeight / 2;
 	const FVector FrontTraceEnd = FrontTraceStart + ForwardVector * VaultTraceDistance;
@@ -180,14 +198,12 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 		return;
 	}
 
-	// 3. TRACE: Finde die genaue Kantenhöhe
 	const FVector LedgeTraceStart = FVector(FrontHit.ImpactPoint.X, FrontHit.ImpactPoint.Y, ActorLocation.Z + MaxVaultHeight) + ForwardVector * 15.f;
 	if (!UKismetSystemLibrary::LineTraceSingle(this, LedgeTraceStart, LedgeTraceStart - FVector(0,0, MaxVaultHeight-MinVaultHeight), UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, LedgeHit, true))
 	{
 		return;
 	}
 
-	// 4. TRACE: Ist genug Platz zum Landen?
 	const FVector LandingLocation = LedgeHit.ImpactPoint + (ForwardVector * CapsuleRadius * 1.5f) + FVector(0, 0, CapsuleHalfHeight + 5.f);
 	if (UKismetSystemLibrary::CapsuleTraceSingle(this, LandingLocation, LandingLocation, CapsuleRadius, CapsuleHalfHeight, UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, LandingSpaceHit, true))
 	{
@@ -199,15 +215,19 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 
 void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector& LedgePosition)
 {
+    // NEU: Animation Montage für das Mantling abspielen
+    if (MantleMontage)
+    {
+        PlayAnimMontage(MantleMontage);
+    }
+
 	bIsVaulting = true;
 	CurrentMantleState = EMantleState::Reaching;
 	MantleTargetLocation = LandingTarget;
 
-	// NEU: Eingehende Geschwindigkeit für den Boost nach dem Vault speichern
     const FVector HorizontalVelocity = GetCharacterMovement()->Velocity;
-    MantleExitSpeed = HorizontalVelocity.Size2D(); // Size2D ignoriert die Z-Achse (Fallen/Springen)
+    MantleExitSpeed = HorizontalVelocity.Size2D();
 	
-	// Erstelle den ersten Punkt des Mantles: hoch zur Kante
 	MantleLedgeLocation = LedgePosition;
 	MantleLedgeLocation.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	MantleLedgeLocation += GetActorForwardVector() * 5.f;
@@ -216,8 +236,6 @@ void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector&
 	GetCharacterMovement()->Velocity = FVector::ZeroVector;
 	GetCharacterMovement()->GravityScale = 0.0f;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore);
-
-	UE_LOG(LogChaosCharacter, Warning, TEXT("MANTLE GESTARTET!"));
 }
 
 void AChaosCharacter::TickMantle(float DeltaTime)
@@ -235,7 +253,10 @@ void AChaosCharacter::TickMantle(float DeltaTime)
 	else // PushingForward
 	{
 		CurrentTarget = MantleTargetLocation;
-		if(FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f)
+		// Beende den Mantle kurz bevor das Ziel erreicht ist, um der Animation Zeit zum Abschluss zu geben
+        // ODER wenn die Montage zu Ende ist
+        UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if(FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f || (AnimInstance && !AnimInstance->Montage_IsPlaying(MantleMontage)))
 		{
 			EndMantle();
 			return;
@@ -248,6 +269,8 @@ void AChaosCharacter::TickMantle(float DeltaTime)
 
 void AChaosCharacter::EndMantle()
 {
+	if(!bIsVaulting) return;
+    
 	bIsVaulting = false;
 	CurrentMantleState = EMantleState::None;
 	
@@ -255,7 +278,10 @@ void AChaosCharacter::EndMantle()
 	GetCharacterMovement()->GravityScale = DefaultGravityScale;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
     
-	// Starte Cooldown
+    const float FinalSpeed = FMath::Max(MantleExitSpeed * MantleSpeedMultiplier, MantleMinExitSpeed);
+    const FVector ExitLaunchVelocity = GetActorForwardVector() * FinalSpeed;
+    LaunchCharacter(ExitLaunchVelocity, false, false);
+
 	bCanCheckVault = false;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle_VaultCooldown, this, &AChaosCharacter::ResetVaultCooldown, VaultCooldownDuration, false);
 }
@@ -263,4 +289,40 @@ void AChaosCharacter::EndMantle()
 void AChaosCharacter::ResetVaultCooldown()
 {
 	bCanCheckVault = true;
+}
+
+// --- Sliding System ---
+void AChaosCharacter::StartSlide()
+{
+    if (GetCharacterMovement()->IsFalling() || GetCharacterMovement()->Velocity.IsNearlyZero())
+    {
+        return;
+    }
+
+    bIsSliding = true;
+    GetCharacterMovement()->GroundFriction = 0.f;
+    GetCapsuleComponent()->SetCapsuleHalfHeight(DefaultCapsuleHalfHeight * SlideCapsuleScale);
+    
+    const FVector ForwardBoost = GetActorForwardVector() * SlideImpulse;
+    GetCharacterMovement()->AddImpulse(ForwardBoost, true);
+}
+
+void AChaosCharacter::StopSlide()
+{
+    if (!bIsSliding)
+    {
+        return;
+    }
+
+    const FVector Start = GetActorLocation();
+    const FVector End = Start + FVector(0,0, DefaultCapsuleHalfHeight * 2.f);
+    FHitResult HitResult;
+    if (UKismetSystemLibrary::SphereTraceSingle(this, Start, End, GetCapsuleComponent()->GetScaledCapsuleRadius(), UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, HitResult, true))
+    {
+        return;
+    }
+    
+    bIsSliding = false;
+    GetCharacterMovement()->GroundFriction = 8.f;
+    GetCapsuleComponent()->SetCapsuleHalfHeight(DefaultCapsuleHalfHeight);
 }

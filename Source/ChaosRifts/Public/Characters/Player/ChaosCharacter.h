@@ -11,11 +11,11 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputComponent;
 class UInputAction;
+class UAnimMontage; // NEU
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogChaosCharacter, Log, All);
 
-// Enum für die verschiedenen Phasen des Mantling
 UENUM(BlueprintType)
 enum class EMantleState : uint8
 {
@@ -24,10 +24,6 @@ enum class EMantleState : uint8
 	PushingForward
 };
 
-
-/**
- * Base class for the player character.
- */
 UCLASS(abstract)
 class AChaosCharacter : public ACharacter
 {
@@ -35,6 +31,15 @@ class AChaosCharacter : public ACharacter
 
 public:
 	AChaosCharacter();
+
+	//~ Animation Interface
+	// Diese Funktionen sind für das Animation Blueprint gedacht, um den Zustand des Charakters abzufragen.
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Animation")
+	bool IsSliding() const { return bIsSliding; }
+
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Animation")
+	bool IsVaulting() const { return bIsVaulting; }
+	//~ End Animation Interface
 
 protected:
 	//~ Begin AActor Interface
@@ -70,10 +75,15 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
 	TObjectPtr<UInputAction> DashAction;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
+    TObjectPtr<UInputAction> SlideAction;
+
 	// --- Input Handlers ---
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void StartDash();
+    void StartSlide();
+    void StopSlide();
 
 public:
 	UFUNCTION(BlueprintCallable, Category="Chaos|Input")
@@ -119,16 +129,31 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
 	float VaultCooldownDuration = 0.5f;
 
-	// NEU: Wie genau muss der Spieler auf die Kante schauen? (Dot Product, 1 = genau drauf, 0.7 = sehr tolerant)
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault", meta = (ClampMin = "0.7", ClampMax = "1.0"))
 	float VaultActivationDotProduct = 0.9f;
 	
-	// NEU: Geschwindigkeits-Boost nach dem Vault
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
 	float MantleMinExitSpeed = 400.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
 	float MantleSpeedMultiplier = 1.1f;
+    
+    // --- Sliding Properties ---
+    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Slide")
+    float SlideImpulse = 800.f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Slide")
+    float SlideMinSpeed = 150.f;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Slide", meta = (ClampMin = "0.1", ClampMax = "1.0"))
+    float SlideCapsuleScale = 0.5f;
+
+    // --- Animation Montages ---
+    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
+    TObjectPtr<UAnimMontage> DashMontage;
+    
+    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
+    TObjectPtr<UAnimMontage> MantleMontage;
 	
 private:
 	// --- Dash System ---
@@ -157,8 +182,11 @@ private:
 	float DefaultGravityScale = 1.f;
 	FTimerHandle TimerHandle_VaultCooldown;
 	
-	// NEU: Variable zum Speichern der Geschwindigkeit
 	float MantleExitSpeed = 0.f;
+    
+    // --- Sliding System ---
+    bool bIsSliding = false;
+    float DefaultCapsuleHalfHeight = 0.f;
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
