@@ -259,6 +259,8 @@ void AChaosCharacter::TickMantle(float DeltaTime)
 			return;
 		}
 	}
+
+	const int MantleLerpSpeed = GetSpeed() > MantleFastSpeedThreshold ? MantleLerpSpeedFast : MantleLerpSpeedNormal;
 	
 	const FVector NewLocation = FMath::VInterpTo(GetActorLocation(), CurrentTarget, DeltaTime, MantleLerpSpeed);
 	SetActorLocation(NewLocation);

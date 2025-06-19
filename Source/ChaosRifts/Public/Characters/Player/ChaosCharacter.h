@@ -120,32 +120,35 @@ protected:
 	float PostDashSpeedBoostDuration = 1.0f;
 
 	// --- Vaulting Properties ---
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleTraceDistance = 120.f;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MinMantleHeight = 50.f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MaxMantleHeight = 150.f;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
-	float MantleLerpSpeed = 15.f;
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
+	float MantleLerpSpeedNormal = 2.f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
+	float MantleLerpSpeedFast = 12.f;
+
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleCooldownDuration = 0.5f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault", meta = (ClampMin = "0.7", ClampMax = "1.0"))
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle", meta = (ClampMin = "0.7", ClampMax = "1.0"))
 	float MantleActivationDotProduct = 0.9f;
 	
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleMinExitSpeed = 400.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
-	float MantleSpeedMultiplier = 1.1f;
+	float MantleSpeedMultiplier = 1.2f;
     
     // NEU: Schwellenwert, ab welcher Geschwindigkeit der schnelle Vault genutzt wird
-    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
     float MantleFastSpeedThreshold = 600.f;
     
     // --- Sliding Properties ---
