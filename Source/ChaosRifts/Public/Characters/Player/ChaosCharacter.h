@@ -11,7 +11,7 @@ class USpringArmComponent;
 class UCameraComponent;
 class UInputComponent;
 class UInputAction;
-class UAnimMontage; // NEU
+class UAnimMontage;
 struct FInputActionValue;
 
 DECLARE_LOG_CATEGORY_EXTERN(LogChaosCharacter, Log, All);
@@ -33,12 +33,18 @@ public:
 	AChaosCharacter();
 
 	//~ Animation Interface
-	// Diese Funktionen sind für das Animation Blueprint gedacht, um den Zustand des Charakters abzufragen.
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Animation")
+	float GetSpeed() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Animation")
+	bool IsFalling() const;
+
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Animation")
 	bool IsSliding() const { return bIsSliding; }
 
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Animation")
 	bool IsVaulting() const { return bIsVaulting; }
+    
 	//~ End Animation Interface
 
 protected:
@@ -151,7 +157,7 @@ protected:
     // --- Animation Montages ---
     UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
     TObjectPtr<UAnimMontage> DashMontage;
-    
+
     UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
     TObjectPtr<UAnimMontage> MantleMontage;
 	

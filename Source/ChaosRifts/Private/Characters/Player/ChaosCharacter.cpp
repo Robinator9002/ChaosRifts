@@ -11,7 +11,7 @@
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetSystemLibrary.h" 
-#include "Animation/AnimInstance.h" // NEU: Für Animationen benötigt
+#include "Animation/AnimInstance.h"
 
 DEFINE_LOG_CATEGORY(LogChaosCharacter);
 
@@ -130,20 +130,17 @@ void AChaosCharacter::DoLook(float Yaw, float Pitch)
 void AChaosCharacter::StartDash()
 {
 	if (!bCanDash || bIsVaulting) { return; }
-    
-    // NEU: Animation Montage für den Dash abspielen
+
     if (DashMontage)
     {
         PlayAnimMontage(DashMontage);
     }
-    else
-    {
-        // Fallback, falls keine Montage zugewiesen ist
-	    bCanDash = false;
-	    LaunchCharacter(GetActorForwardVector() * DashImpulse, true, true);
-	    ApplyPostDashSpeedBoost();
-	    GetWorld()->GetTimerManager().SetTimer(TimerHandle_DashCooldown, this, &AChaosCharacter::ResetDashCooldown, DashCooldown, false);
-    }
+
+    // Physikalischen Dash ausführen
+    bCanDash = false;
+    LaunchCharacter(GetActorForwardVector() * DashImpulse, true, true);
+    ApplyPostDashSpeedBoost();
+    GetWorld()->GetTimerManager().SetTimer(TimerHandle_DashCooldown, this, &AChaosCharacter::ResetDashCooldown, DashCooldown, false);
 }
 
 void AChaosCharacter::ApplyPostDashSpeedBoost()
@@ -215,7 +212,6 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 
 void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector& LedgePosition)
 {
-    // NEU: Animation Montage für das Mantling abspielen
     if (MantleMontage)
     {
         PlayAnimMontage(MantleMontage);
@@ -253,10 +249,8 @@ void AChaosCharacter::TickMantle(float DeltaTime)
 	else // PushingForward
 	{
 		CurrentTarget = MantleTargetLocation;
-		// Beende den Mantle kurz bevor das Ziel erreicht ist, um der Animation Zeit zum Abschluss zu geben
-        // ODER wenn die Montage zu Ende ist
         UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if(FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f || (AnimInstance && !AnimInstance->Montage_IsPlaying(MantleMontage)))
+		if(FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f || (MantleMontage && AnimInstance && !AnimInstance->Montage_IsPlaying(MantleMontage)))
 		{
 			EndMantle();
 			return;
@@ -325,4 +319,15 @@ void AChaosCharacter::StopSlide()
     bIsSliding = false;
     GetCharacterMovement()->GroundFriction = 8.f;
     GetCapsuleComponent()->SetCapsuleHalfHeight(DefaultCapsuleHalfHeight);
+}
+
+//~ Animation Interface
+float AChaosCharacter::GetSpeed() const
+{
+    return GetCharacterMovement()->Velocity.Size2D();
+}
+
+bool AChaosCharacter::IsFalling() const
+{
+    return GetCharacterMovement()->IsFalling();
 }
