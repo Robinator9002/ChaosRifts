@@ -40,9 +40,6 @@ public:
 	bool IsFalling() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Animation")
-	bool IsSliding() const { return bIsSliding; }
-
-	UFUNCTION(BlueprintCallable, Category = "Chaos|Animation")
 	bool IsVaulting() const { return bIsVaulting; }
     
 	//~ End Animation Interface
@@ -81,15 +78,10 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
 	TObjectPtr<UInputAction> DashAction;
 
-    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
-    TObjectPtr<UInputAction> SlideAction;
-
 	// --- Input Handlers ---
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void StartDash();
-    void StartSlide();
-    void StopSlide();
 
 public:
 	UFUNCTION(BlueprintCallable, Category="Chaos|Input")
@@ -135,27 +127,14 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleLerpSpeedFast = 12.f;
 
-	// This one is dynamically changing based on the speed before the Lerp
-	float MantleLerpSpeed = MantleLerpSpeedNormal;
-
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleCooldownDuration = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle", meta = (ClampMin = "0.7", ClampMax = "1.0"))
 	float MantleActivationDotProduct = 0.8f;
-	
+    
     UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
     float MantleFastSpeedThreshold = 600.f;
-    
-    // --- Sliding Properties ---
-    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Slide")
-    float SlideImpulse = 800.f;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Slide")
-    float SlideMinSpeed = 150.f;
-
-    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Slide", meta = (ClampMin = "0.1", ClampMax = "1.0"))
-    float SlideCapsuleScale = 0.5f;
 
     // --- Animation Montages ---
     UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
@@ -180,12 +159,13 @@ private:
 	// --- Mantle System ---
 	void TickVaultCheck(float DeltaTime);
 	void PerformMantle(const FVector& LandingTarget, const FVector& LedgePosition);
-	void TickMantle(float DeltaTime); // Parameter entfernt
+	void TickMantle(float DeltaTime);
 	void EndMantle();
 	void ResetVaultCooldown();
 	
 	bool bIsVaulting = false;
 	bool bCanCheckVault = true;
+	float MantleLerpSpeed = MantleLerpSpeedNormal;
 	FVector MantleTargetLocation;
 	FVector MantleLedgeLocation;
 	EMantleState CurrentMantleState = EMantleState::None;
@@ -194,12 +174,6 @@ private:
 	float ForwardInputValue = 0.f;
 	float DefaultGravityScale = 1.f;
 	FTimerHandle TimerHandle_VaultCooldown;
-	
-	float MantleExitSpeed = 0.f;
-    
-    // --- Sliding System ---
-    bool bIsSliding = false;
-    float DefaultCapsuleHalfHeight = 0.f;
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

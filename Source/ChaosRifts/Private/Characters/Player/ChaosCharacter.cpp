@@ -49,7 +49,6 @@ void AChaosCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 	DefaultGravityScale = GetCharacterMovement()->GravityScale;
-    DefaultCapsuleHalfHeight = GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight();
 }
 
 
@@ -59,25 +58,18 @@ void AChaosCharacter::Tick(float DeltaTime)
 
 	if (bIsVaulting)
 	{
-		TickMantle(DeltaTime); // Parameter entfernt, da MantleLerpSpeed jetzt eine Klassenvariable ist.
+		TickMantle(DeltaTime);
 	}
 	else if (bCanCheckVault)
 	{
 		TickVaultCheck(DeltaTime);
 	}
-    
-    if (bIsSliding && GetCharacterMovement()->Velocity.SizeSquared2D() < FMath::Square(SlideMinSpeed))
-    {
-        StopSlide();
-    }
 
-    // NEU: Logik zum Abbrechen der Dash-Montage, wenn der Spieler abrupt stoppt.
     UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
     if (DashMontage && AnimInstance && AnimInstance->Montage_IsPlaying(DashMontage))
     {
         if (GetCharacterMovement()->Velocity.SizeSquared2D() < FMath::Square(1.0f))
         {
-            // Stoppt die Montage sanft, damit es nicht zu abgehackt aussieht.
             AnimInstance->Montage_Stop(0.2f, DashMontage);
         }
     }
@@ -92,8 +84,6 @@ void AChaosCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AChaosCharacter::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AChaosCharacter::Look);
 		EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &AChaosCharacter::StartDash);
-        EnhancedInputComponent->BindAction(SlideAction, ETriggerEvent::Started, this, &AChaosCharacter::StartSlide);
-        EnhancedInputComponent->BindAction(SlideAction, ETriggerEvent::Completed, this, &AChaosCharacter::StopSlide);
 	}
 	else
 	{
@@ -233,8 +223,6 @@ void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector&
 	MantleLerpSpeed = GetSpeed() > MantleFastSpeedThreshold ? MantleLerpSpeedFast : MantleLerpSpeedNormal;
 	CurrentMantleState = EMantleState::Reaching;
 	MantleTargetLocation = LandingTarget;
-
-    const FVector HorizontalVelocity = GetCharacterMovement()->Velocity;
 	
 	MantleLedgeLocation = LedgePosition;
 	MantleLedgeLocation.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
@@ -292,42 +280,6 @@ void AChaosCharacter::EndMantle()
 void AChaosCharacter::ResetVaultCooldown()
 {
 	bCanCheckVault = true;
-}
-
-// --- Sliding System ---
-void AChaosCharacter::StartSlide()
-{
-    if (GetCharacterMovement()->IsFalling() || GetCharacterMovement()->Velocity.IsNearlyZero())
-    {
-        return;
-    }
-
-    bIsSliding = true;
-    GetCharacterMovement()->GroundFriction = 0.f;
-    GetCapsuleComponent()->SetCapsuleHalfHeight(DefaultCapsuleHalfHeight * SlideCapsuleScale);
-    
-    const FVector ForwardBoost = GetActorForwardVector() * SlideImpulse;
-    GetCharacterMovement()->AddImpulse(ForwardBoost, true);
-}
-
-void AChaosCharacter::StopSlide()
-{
-    if (!bIsSliding)
-    {
-        return;
-    }
-
-    const FVector Start = GetActorLocation();
-    const FVector End = Start + FVector(0,0, DefaultCapsuleHalfHeight * 2.f);
-    FHitResult HitResult;
-    if (UKismetSystemLibrary::SphereTraceSingle(this, Start, End, GetCapsuleComponent()->GetScaledCapsuleRadius(), UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, HitResult, true))
-    {
-        return;
-    }
-    
-    bIsSliding = false;
-    GetCharacterMovement()->GroundFriction = 8.f;
-    GetCapsuleComponent()->SetCapsuleHalfHeight(DefaultCapsuleHalfHeight);
 }
 
 //~ Animation Interface
