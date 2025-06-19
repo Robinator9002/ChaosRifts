@@ -169,7 +169,7 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
     
     const FVector CameraDirection = FollowCamera->GetForwardVector().GetSafeNormal();
     const FVector ActorDirection = GetActorForwardVector().GetSafeNormal();
-    if (FVector::DotProduct(CameraDirection, ActorDirection) < VaultActivationDotProduct)
+    if (FVector::DotProduct(CameraDirection, ActorDirection) < MantleActivationDotProduct)
     {
         return;
     }
@@ -182,20 +182,20 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 
 	FVector FrontTraceStart = ActorLocation;
 	FrontTraceStart.Z -= CapsuleHalfHeight / 2;
-	const FVector FrontTraceEnd = FrontTraceStart + ForwardVector * VaultTraceDistance;
+	const FVector FrontTraceEnd = FrontTraceStart + ForwardVector * MantleTraceDistance;
 	if (!UKismetSystemLibrary::LineTraceSingle(this, FrontTraceStart, FrontTraceEnd, UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, FrontHit, true))
 	{
 		return;
 	}
 
 	const FVector UpperTraceStart = ActorLocation + FVector(0, 0, CapsuleHalfHeight / 1.5f);
-	if (UKismetSystemLibrary::LineTraceSingle(this, UpperTraceStart, UpperTraceStart + ForwardVector * VaultTraceDistance, UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, LandingSpaceHit, true))
+	if (UKismetSystemLibrary::LineTraceSingle(this, UpperTraceStart, UpperTraceStart + ForwardVector * MantleTraceDistance, UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, LandingSpaceHit, true))
 	{
 		return;
 	}
 
-	const FVector LedgeTraceStart = FVector(FrontHit.ImpactPoint.X, FrontHit.ImpactPoint.Y, ActorLocation.Z + MaxVaultHeight) + ForwardVector * 15.f;
-	if (!UKismetSystemLibrary::LineTraceSingle(this, LedgeTraceStart, LedgeTraceStart - FVector(0,0, MaxVaultHeight-MinVaultHeight), UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, LedgeHit, true))
+	const FVector LedgeTraceStart = FVector(FrontHit.ImpactPoint.X, FrontHit.ImpactPoint.Y, ActorLocation.Z + MaxMantleHeight) + ForwardVector * 15.f;
+	if (!UKismetSystemLibrary::LineTraceSingle(this, LedgeTraceStart, LedgeTraceStart - FVector(0,0, MaxMantleHeight-MinMantleHeight), UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, LedgeHit, true))
 	{
 		return;
 	}
@@ -260,7 +260,7 @@ void AChaosCharacter::TickMantle(float DeltaTime)
 		}
 	}
 	
-	const FVector NewLocation = FMath::VInterpTo(GetActorLocation(), CurrentTarget, DeltaTime, VaultLerpSpeed);
+	const FVector NewLocation = FMath::VInterpTo(GetActorLocation(), CurrentTarget, DeltaTime, MantleLerpSpeed);
 	SetActorLocation(NewLocation);
 }
 
@@ -281,7 +281,7 @@ void AChaosCharacter::EndMantle()
     LaunchCharacter(ExitLaunchVelocity, false, false);
 
 	bCanCheckVault = false;
-	GetWorld()->GetTimerManager().SetTimer(TimerHandle_VaultCooldown, this, &AChaosCharacter::ResetVaultCooldown, VaultCooldownDuration, false);
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_VaultCooldown, this, &AChaosCharacter::ResetVaultCooldown, MantleCooldownDuration, false);
 }
 
 void AChaosCharacter::ResetVaultCooldown()

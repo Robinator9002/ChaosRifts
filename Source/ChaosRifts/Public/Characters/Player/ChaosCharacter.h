@@ -121,22 +121,22 @@ protected:
 
 	// --- Vaulting Properties ---
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
-	float VaultTraceDistance = 120.f;
+	float MantleTraceDistance = 120.f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
-	float MinVaultHeight = 50.f;
+	float MinMantleHeight = 50.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
-	float MaxVaultHeight = 150.f;
+	float MaxMantleHeight = 150.f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
-	float VaultLerpSpeed = 15.f;
+	float MantleLerpSpeed = 15.f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
-	float VaultCooldownDuration = 0.5f;
+	float MantleCooldownDuration = 0.5f;
 
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault", meta = (ClampMin = "0.7", ClampMax = "1.0"))
-	float VaultActivationDotProduct = 0.9f;
+	float MantleActivationDotProduct = 0.9f;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
 	float MantleMinExitSpeed = 400.f;
