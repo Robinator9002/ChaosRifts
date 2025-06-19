@@ -136,7 +136,6 @@ void AChaosCharacter::StartDash()
         PlayAnimMontage(DashMontage);
     }
 
-    // Physikalischen Dash ausführen
     bCanDash = false;
     LaunchCharacter(GetActorForwardVector() * DashImpulse, true, true);
     ApplyPostDashSpeedBoost();
@@ -212,9 +211,13 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 
 void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector& LedgePosition)
 {
-    if (MantleMontage)
+    // Hier ist die neue Logik zur Auswahl der Montage
+    UAnimMontage* MontageToPlay = GetSpeed() > MantleFastSpeedThreshold ? MantleMontage_Fast : MantleMontage_Normal;
+    if (MontageToPlay)
     {
-        PlayAnimMontage(MantleMontage);
+        // Wir speichern die gerade laufende Montage, um sie in TickMantle abfragen zu können
+        CurrentMantleMontage = MontageToPlay;
+        PlayAnimMontage(CurrentMantleMontage);
     }
 
 	bIsVaulting = true;
@@ -250,7 +253,7 @@ void AChaosCharacter::TickMantle(float DeltaTime)
 	{
 		CurrentTarget = MantleTargetLocation;
         UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if(FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f || (MantleMontage && AnimInstance && !AnimInstance->Montage_IsPlaying(MantleMontage)))
+		if(FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f || (CurrentMantleMontage && AnimInstance && !AnimInstance->Montage_IsPlaying(CurrentMantleMontage)))
 		{
 			EndMantle();
 			return;
@@ -266,6 +269,7 @@ void AChaosCharacter::EndMantle()
 	if(!bIsVaulting) return;
     
 	bIsVaulting = false;
+	CurrentMantleMontage = nullptr;
 	CurrentMantleState = EMantleState::None;
 	
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);

@@ -144,6 +144,10 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
 	float MantleSpeedMultiplier = 1.1f;
     
+    // NEU: Schwellenwert, ab welcher Geschwindigkeit der schnelle Vault genutzt wird
+    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+    float MantleFastSpeedThreshold = 600.f;
+    
     // --- Sliding Properties ---
     UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Slide")
     float SlideImpulse = 800.f;
@@ -159,7 +163,11 @@ protected:
     TObjectPtr<UAnimMontage> DashMontage;
 
     UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
-    TObjectPtr<UAnimMontage> MantleMontage;
+    TObjectPtr<UAnimMontage> MantleMontage_Normal;
+    
+    // NEU: Eigene Montage für den schnellen Vault
+    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
+    TObjectPtr<UAnimMontage> MantleMontage_Fast;
 	
 private:
 	// --- Dash System ---
@@ -183,6 +191,8 @@ private:
 	FVector MantleTargetLocation;
 	FVector MantleLedgeLocation;
 	EMantleState CurrentMantleState = EMantleState::None;
+    // NEU: Zeiger, um die gerade laufende Montage zu speichern
+    TObjectPtr<UAnimMontage> CurrentMantleMontage;
 	
 	float ForwardInputValue = 0.f;
 	float DefaultGravityScale = 1.f;
