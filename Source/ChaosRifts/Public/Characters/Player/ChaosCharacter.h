@@ -135,6 +135,9 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleLerpSpeedFast = 12.f;
 
+	// This one is dynamically changing based on the speed before the Lerp
+	float MantleLerpSpeed = MantleLerpSpeedNormal;
+
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleCooldownDuration = 0.5f;
 
@@ -144,7 +147,7 @@ protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleMinExitSpeed = 400.f;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Vault")
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Movement|Mantle")
 	float MantleSpeedMultiplier = 1.2f;
     
     // NEU: Schwellenwert, ab welcher Geschwindigkeit der schnelle Vault genutzt wird
@@ -185,7 +188,7 @@ private:
 	// --- Vault System ---
 	void TickVaultCheck(float DeltaTime);
 	void PerformMantle(const FVector& LandingTarget, const FVector& LedgePosition);
-	void TickMantle(float DeltaTime);
+	void TickMantle(float DeltaTime, float MantleLerpSpeed);
 	void EndMantle();
 	void ResetVaultCooldown();
 	

@@ -59,7 +59,7 @@ void AChaosCharacter::Tick(float DeltaTime)
 
 	if (bIsVaulting)
 	{
-		TickMantle(DeltaTime);
+		TickMantle(DeltaTime, MantleLerpSpeed);
 	}
 	else if (bCanCheckVault)
 	{
@@ -221,6 +221,7 @@ void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector&
     }
 
 	bIsVaulting = true;
+	MantleLerpSpeed = GetSpeed() > MantleFastSpeedThreshold ? MantleLerpSpeedFast : MantleLerpSpeedNormal;
 	CurrentMantleState = EMantleState::Reaching;
 	MantleTargetLocation = LandingTarget;
 
@@ -237,7 +238,7 @@ void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector&
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Ignore);
 }
 
-void AChaosCharacter::TickMantle(float DeltaTime)
+void AChaosCharacter::TickMantle(float DeltaTime, float MantleLerpSpeed)
 {
 	FVector CurrentTarget;
 	
@@ -259,8 +260,6 @@ void AChaosCharacter::TickMantle(float DeltaTime)
 			return;
 		}
 	}
-
-	const int MantleLerpSpeed = GetSpeed() > MantleFastSpeedThreshold ? MantleLerpSpeedFast : MantleLerpSpeedNormal;
 	
 	const FVector NewLocation = FMath::VInterpTo(GetActorLocation(), CurrentTarget, DeltaTime, MantleLerpSpeed);
 	SetActorLocation(NewLocation);
