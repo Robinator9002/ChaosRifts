@@ -10,22 +10,29 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
 #include "GameFramework/SpringArmComponent.h"
-#include "Kismet/KismetSystemLibrary.h" 
+#include "Kismet/KismetSystemLibrary.h"
 #include "Animation/AnimInstance.h"
+
+// NO CHANGES ARE NEEDED IN THIS FILE.
+// The include path above correctly finds the header.
+// All "Super::" calls are polymorphic and will correctly call the new base class functions.
 
 DEFINE_LOG_CATEGORY(LogChaosCharacter);
 
 AChaosCharacter::AChaosCharacter()
 {
+	// NOTE: The base class constructor is called automatically before this one.
+	// The AttributesComponent is already created by AChaosCharacterBase.
+
 	PrimaryActorTick.bCanEverTick = true;
 
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
-		
+
 	bUseControllerRotationPitch = false;
 	bUseControllerRotationYaw = false;
 	bUseControllerRotationRoll = false;
 
-	GetCharacterMovement()->bOrientRotationToMovement = true; 
+	GetCharacterMovement()->bOrientRotationToMovement = true;
 	GetCharacterMovement()->RotationRate = FRotator(0.0f, 500.0f, 0.0f);
 	GetCharacterMovement()->JumpZVelocity = JumpVelocityDefault;
 	GetCharacterMovement()->MaxWalkSpeed = MovementSpeedDefault;
@@ -33,7 +40,7 @@ AChaosCharacter::AChaosCharacter()
 	GetCharacterMovement()->MinAnalogWalkSpeed = 50.f;
 	GetCharacterMovement()->BrakingDecelerationWalking = 4000.f;
 	GetCharacterMovement()->BrakingDecelerationFalling = 2500.0f;
-    GetCharacterMovement()->bCanWalkOffLedgesWhenCrouching = true;
+	GetCharacterMovement()->bCanWalkOffLedgesWhenCrouching = true;
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("CameraBoom"));
 	CameraBoom->SetupAttachment(RootComponent);
@@ -47,14 +54,13 @@ AChaosCharacter::AChaosCharacter()
 
 void AChaosCharacter::BeginPlay()
 {
-	Super::BeginPlay();
+	Super::BeginPlay(); // This now calls AChaosCharacterBase::BeginPlay()
 	DefaultGravityScale = GetCharacterMovement()->GravityScale;
 }
 
-
 void AChaosCharacter::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+	Super::Tick(DeltaTime); // This now calls AChaosCharacterBase::Tick()
 
 	if (bIsVaulting)
 	{
@@ -65,19 +71,22 @@ void AChaosCharacter::Tick(float DeltaTime)
 		TickVaultCheck(DeltaTime);
 	}
 
-    UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-    if (DashMontage && AnimInstance && AnimInstance->Montage_IsPlaying(DashMontage))
-    {
-        if (GetCharacterMovement()->Velocity.SizeSquared2D() < FMath::Square(1.0f))
-        {
-            AnimInstance->Montage_Stop(0.2f, DashMontage);
-        }
-    }
+	UAnimInstance *AnimInstance = GetMesh()->GetAnimInstance();
+	if (DashMontage && AnimInstance && AnimInstance->Montage_IsPlaying(DashMontage))
+	{
+		if (GetCharacterMovement()->Velocity.SizeSquared2D() < FMath::Square(1.0f))
+		{
+			AnimInstance->Montage_Stop(0.2f, DashMontage);
+		}
+	}
 }
 
-void AChaosCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AChaosCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputComponent)
 {
-	if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
+	// Note: Super::SetupPlayerInputComponent is not called because ACharacter's implementation is empty.
+	// If AChaosCharacterBase had an implementation, we would call it.
+
+	if (UEnhancedInputComponent *EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
@@ -91,13 +100,13 @@ void AChaosCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComp
 	}
 }
 
-void AChaosCharacter::Move(const FInputActionValue& Value)
+void AChaosCharacter::Move(const FInputActionValue &Value)
 {
 	const FVector2D MovementVector = Value.Get<FVector2D>();
 	DoMove(MovementVector.X, MovementVector.Y);
 }
 
-void AChaosCharacter::Look(const FInputActionValue& Value)
+void AChaosCharacter::Look(const FInputActionValue &Value)
 {
 	const FVector2D LookAxisVector = Value.Get<FVector2D>();
 	DoLook(LookAxisVector.X, LookAxisVector.Y);
@@ -106,7 +115,7 @@ void AChaosCharacter::Look(const FInputActionValue& Value)
 void AChaosCharacter::DoMove(float Right, float Forward)
 {
 	this->ForwardInputValue = Forward;
-	
+
 	if (Controller != nullptr && !bIsVaulting)
 	{
 		const FRotator Rotation = Controller->GetControlRotation();
@@ -130,17 +139,20 @@ void AChaosCharacter::DoLook(float Yaw, float Pitch)
 // --- Dash System ---
 void AChaosCharacter::StartDash()
 {
-	if (!bCanDash || bIsVaulting) { return; }
+	if (!bCanDash || bIsVaulting)
+	{
+		return;
+	}
 
-    if (DashMontage)
-    {
-        PlayAnimMontage(DashMontage);
-    }
+	if (DashMontage)
+	{
+		PlayAnimMontage(DashMontage);
+	}
 
-    bCanDash = false;
-    LaunchCharacter(GetActorForwardVector() * DashImpulse, true, true);
-    ApplyPostDashSpeedBoost();
-    GetWorld()->GetTimerManager().SetTimer(TimerHandle_DashCooldown, this, &AChaosCharacter::ResetDashCooldown, DashCooldown, false);
+	bCanDash = false;
+	LaunchCharacter(GetActorForwardVector() * DashImpulse, true, true);
+	ApplyPostDashSpeedBoost();
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_DashCooldown, this, &AChaosCharacter::ResetDashCooldown, DashCooldown, false);
 }
 
 void AChaosCharacter::ApplyPostDashSpeedBoost()
@@ -167,13 +179,13 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 	{
 		return;
 	}
-    
-    const FVector CameraDirection = FollowCamera->GetForwardVector().GetSafeNormal();
-    const FVector ActorDirection = GetActorForwardVector().GetSafeNormal();
-    if (FVector::DotProduct(CameraDirection, ActorDirection) < MantleActivationDotProduct)
-    {
-        return;
-    }
+
+	const FVector CameraDirection = FollowCamera->GetForwardVector().GetSafeNormal();
+	const FVector ActorDirection = GetActorForwardVector().GetSafeNormal();
+	if (FVector::DotProduct(CameraDirection, ActorDirection) < MantleActivationDotProduct)
+	{
+		return;
+	}
 
 	const FVector ActorLocation = GetActorLocation();
 	const FVector ForwardVector = GetActorForwardVector();
@@ -196,7 +208,7 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 	}
 
 	const FVector LedgeTraceStart = FVector(FrontHit.ImpactPoint.X, FrontHit.ImpactPoint.Y, ActorLocation.Z + MaxMantleHeight) + ForwardVector * 15.f;
-	if (!UKismetSystemLibrary::LineTraceSingle(this, LedgeTraceStart, LedgeTraceStart - FVector(0,0, MaxMantleHeight-MinMantleHeight), UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, LedgeHit, true))
+	if (!UKismetSystemLibrary::LineTraceSingle(this, LedgeTraceStart, LedgeTraceStart - FVector(0, 0, MaxMantleHeight - MinMantleHeight), UEngineTypes::ConvertToTraceType(ECC_WorldStatic), false, {}, EDrawDebugTrace::None, LedgeHit, true))
 	{
 		return;
 	}
@@ -206,24 +218,24 @@ void AChaosCharacter::TickVaultCheck(float DeltaTime)
 	{
 		return;
 	}
-	
+
 	PerformMantle(LandingLocation, LedgeHit.ImpactPoint);
 }
 
-void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector& LedgePosition)
+void AChaosCharacter::PerformMantle(const FVector &LandingTarget, const FVector &LedgePosition)
 {
-    UAnimMontage* MontageToPlay = GetSpeed() > MantleFastSpeedThreshold ? MantleMontage_Fast : MantleMontage_Normal;
-    if (MontageToPlay)
-    {
-        CurrentMantleMontage = MontageToPlay;
-        PlayAnimMontage(CurrentMantleMontage);
-    }
+	UAnimMontage *MontageToPlay = GetSpeed() > MantleFastSpeedThreshold ? MantleMontage_Fast : MantleMontage_Normal;
+	if (MontageToPlay)
+	{
+		CurrentMantleMontage = MontageToPlay;
+		PlayAnimMontage(CurrentMantleMontage);
+	}
 
 	bIsVaulting = true;
 	MantleLerpSpeed = GetSpeed() > MantleFastSpeedThreshold ? MantleLerpSpeedFast : MantleLerpSpeedNormal;
 	CurrentMantleState = EMantleState::Reaching;
 	MantleTargetLocation = LandingTarget;
-	
+
 	MantleLedgeLocation = LedgePosition;
 	MantleLedgeLocation.Z += GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 	MantleLedgeLocation += GetActorForwardVector() * 5.f;
@@ -237,11 +249,11 @@ void AChaosCharacter::PerformMantle(const FVector& LandingTarget, const FVector&
 void AChaosCharacter::TickMantle(float DeltaTime)
 {
 	FVector CurrentTarget;
-	
-	if(CurrentMantleState == EMantleState::Reaching)
+
+	if (CurrentMantleState == EMantleState::Reaching)
 	{
 		CurrentTarget = MantleLedgeLocation;
-		if(FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f)
+		if (FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f)
 		{
 			CurrentMantleState = EMantleState::PushingForward;
 		}
@@ -249,30 +261,31 @@ void AChaosCharacter::TickMantle(float DeltaTime)
 	else // PushingForward
 	{
 		CurrentTarget = MantleTargetLocation;
-        UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-		if(FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f || (CurrentMantleMontage && AnimInstance && !AnimInstance->Montage_IsPlaying(CurrentMantleMontage)))
+		UAnimInstance *AnimInstance = GetMesh()->GetAnimInstance();
+		if (FVector::DistSquared(GetActorLocation(), CurrentTarget) < 100.f || (CurrentMantleMontage && AnimInstance && !AnimInstance->Montage_IsPlaying(CurrentMantleMontage)))
 		{
 			EndMantle();
 			return;
 		}
 	}
-	
+
 	const FVector NewLocation = FMath::VInterpTo(GetActorLocation(), CurrentTarget, DeltaTime, MantleLerpSpeed);
 	SetActorLocation(NewLocation);
 }
 
 void AChaosCharacter::EndMantle()
 {
-	if(!bIsVaulting) return;
-    
+	if (!bIsVaulting)
+		return;
+
 	bIsVaulting = false;
 	CurrentMantleMontage = nullptr;
 	CurrentMantleState = EMantleState::None;
-	
+
 	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	GetCharacterMovement()->GravityScale = DefaultGravityScale;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_WorldStatic, ECR_Block);
-    
+
 	bCanCheckVault = false;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle_VaultCooldown, this, &AChaosCharacter::ResetVaultCooldown, MantleCooldownDuration, false);
 }
@@ -285,10 +298,10 @@ void AChaosCharacter::ResetVaultCooldown()
 //~ Animation Interface
 float AChaosCharacter::GetSpeed() const
 {
-    return GetCharacterMovement()->Velocity.Size2D();
+	return GetCharacterMovement()->Velocity.Size2D();
 }
 
 bool AChaosCharacter::IsFalling() const
 {
-    return GetCharacterMovement()->IsFalling();
+	return GetCharacterMovement()->IsFalling();
 }

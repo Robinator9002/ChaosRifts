@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h"
+#include "Characters/Base/ChaosCharacterBase.h" // MODIFIED: Inherit from our new base class
 #include "Logging/LogMacros.h"
 #include "ChaosCharacter.generated.h"
 
@@ -24,8 +24,12 @@ enum class EMantleState : uint8
 	PushingForward
 };
 
+/**
+ * The player-controlled character. Inherits shared functionality from AChaosCharacterBase
+ * and adds player-specific logic like input and camera control.
+ */
 UCLASS(abstract)
-class AChaosCharacter : public ACharacter
+class AChaosCharacter : public AChaosCharacterBase // MODIFIED: Changed inheritance from ACharacter
 {
 	GENERATED_BODY()
 
