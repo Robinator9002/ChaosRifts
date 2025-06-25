@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "Characters/Base/ChaosCharacterBase.h" // MODIFIED: Inherit from our new base class
+#include "Characters/Base/ChaosCharacterBase.h"
 #include "Logging/LogMacros.h"
 #include "ChaosCharacter.generated.h"
 
