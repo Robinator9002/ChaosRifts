@@ -468,7 +468,10 @@ void AChaosCharacter::HandlePlayerDeath(AChaosCharacterBase* DeadCharacter)
 	// Call base class death logic (ragdoll, disable movement, etc.)
 	// The Die_Implementation function itself does not have a parameter, it's the delegate binding that requires it.
 	// So we call our own Die_Implementation here.
-	Die_Implementation(); // This handles the ragdoll and initial setup for death
+	// NOTE: We are intentionally NOT calling Super::Die_Implementation() here directly.
+	// The delegate OnDeath is broadcast from AChaosCharacterBase::Die_Implementation(),
+	// so the base logic for ragdoll, etc., has already been handled *before* this function is called.
+	// This function primarily handles the *game-specific consequences* of player death.
 
 	UE_LOG(LogChaosCharacter, Display, TEXT("Player Character has died. Game Over!"));
 
@@ -490,6 +493,27 @@ void AChaosCharacter::HandlePlayerDeath(AChaosCharacterBase* DeadCharacter)
 	{
 		UE_LOG(LogChaosCharacter, Error, TEXT("Could not cast to ChaosGameMode to handle game over."));
 	}
+}
+
+// --- Overridden Die_Implementation for AChaosCharacter ---
+// This function needs to be implemented because it's a virtual override from AChaosCharacterBase.
+// It will be called as part of the normal UFunction mechanism when Die() is invoked,
+// which in turn calls OnDeath.Broadcast().
+void AChaosCharacter::Die_Implementation()
+{
+	// Always call the base class implementation first.
+	// This ensures that the generic death logic (like activating ragdoll and broadcasting OnDeath)
+	// from AChaosCharacterBase is executed.
+	Super::Die_Implementation();
+
+	// Any *additional* player-specific death behavior that should happen *immediately*
+	// when Die() is called (before or in parallel with delegate subscribers) could go here.
+	// For example, playing a specific sound effect only for the player's death,
+	// or setting a direct flag on the game state.
+	// Given that 'HandlePlayerDeath' is already set up via the delegate for game over logic,
+	// this function can be minimal, primarily serving to satisfy the linker and the 'override' specifier.
+	// The game restart logic is intentionally left in HandlePlayerDeath as it's triggered
+	// by the delegate, which provides a clean separation of concerns.
 }
 
 
