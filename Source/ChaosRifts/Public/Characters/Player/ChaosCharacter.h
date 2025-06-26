@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Characters/Base/ChaosCharacterBase.h"
 #include "Logging/LogMacros.h"
-#include "ChaosCharacter.generated.ah"
+#include "ChaosCharacter.generated.h"
 
 class USpringArmComponent;
 class UCameraComponent;
