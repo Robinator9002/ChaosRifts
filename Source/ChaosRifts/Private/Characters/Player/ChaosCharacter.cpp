@@ -12,8 +12,13 @@
 #include "GameFramework/SpringArmComponent.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "Animation/AnimInstance.h"
+#include "Kismet/GameplayStatics.h" // For ApplyDamage
+#include "Components/ChaosAttributes.h" // For accessing Chaos resource
+#include "Core/ChaosGameMode.h" // CORRECTED: For GameMode access to handle Game Over
+#include "Characters/Enemy/ChaosEnemy.h" // ADDED: To recognize AChaosEnemy type in melee attack
 
-// NO CHANGES ARE NEEDED IN THIS FILE.
+
+// NO CHANGES ARE NEEDED IN THIS FILE (Original user comment, adapted here)
 // The include path above correctly finds the header.
 // All "Super::" calls are polymorphic and will correctly call the new base class functions.
 
@@ -54,13 +59,17 @@ AChaosCharacter::AChaosCharacter()
 
 void AChaosCharacter::BeginPlay()
 {
-	Super::BeginPlay(); // This now calls AChaosCharacterBase::BeginPlay()
+	Super::BeginPlay(); // Now calls AChaosCharacterBase::BeginPlay()
 	DefaultGravityScale = GetCharacterMovement()->GravityScale;
+
+	// Bind the OnDeath delegate for the player character to a specific handler
+	// The delegate requires a function that takes an AChaosCharacterBase* parameter.
+	OnDeath.AddDynamic(this, &AChaosCharacter::HandlePlayerDeath); 
 }
 
 void AChaosCharacter::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime); // This now calls AChaosCharacterBase::Tick()
+	Super::Tick(DeltaTime); // Now calls AChaosCharacterBase::Tick()
 
 	if (bIsVaulting)
 	{
@@ -83,16 +92,23 @@ void AChaosCharacter::Tick(float DeltaTime)
 
 void AChaosCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputComponent)
 {
-	// Note: Super::SetupPlayerInputComponent is not called because ACharacter's implementation is empty.
+	// NOTE: Super::SetupPlayerInputComponent is not called here because ACharacter's implementation is empty.
 	// If AChaosCharacterBase had an implementation, we would call it.
 
 	if (UEnhancedInputComponent *EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 	{
+		// Input bindings for movement
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &ACharacter::StopJumping);
 		EnhancedInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &AChaosCharacter::Move);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AChaosCharacter::Look);
 		EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &AChaosCharacter::StartDash);
+
+		// Input binding for the melee attack
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AChaosCharacter::AttackMelee);
+
+		// Added: Input binding for spell casting
+		EnhancedInputComponent->BindAction(CastSpellAction, ETriggerEvent::Started, this, &AChaosCharacter::StartSpellCast);
 	}
 	else
 	{
@@ -294,6 +310,188 @@ void AChaosCharacter::ResetVaultCooldown()
 {
 	bCanCheckVault = true;
 }
+
+// --- Melee System ---
+void AChaosCharacter::AttackMelee()
+{
+	// Check if the character can attack (e.g., no other attack active or cooldown)
+	if (!bCanAttack || bIsVaulting)
+	{
+		return;
+	}
+
+	// Check if an attack animation is assigned
+	if (MeleeAttackMontage)
+	{
+		// Play the attack animation
+		PlayAnimMontage(MeleeAttackMontage);
+
+		// Disable attack capability for the duration of a cooldown
+		bCanAttack = false;
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_AttackCooldown, this, &AChaosCharacter::ResetAttackCooldown, MeleeAttackMontage->GetPlayLength() * 0.8f, false);
+		// The cooldown is set to 80% of the animation length here for a fluid feel
+		// and to prevent immediate new attacks.
+		// This can later be replaced with Animation Notifies for precise hitbox timing.
+
+		// Perform a simple sphere trace to find enemies in melee range and deal damage.
+		// This is a very simplified hitbox, which should be refined later with Animation Notifies.
+		FVector StartLocation = GetActorLocation() + GetActorForwardVector() * GetCapsuleComponent()->GetScaledCapsuleRadius();
+		FVector EndLocation = StartLocation + GetActorForwardVector() * 150.0f; // Range of the attack
+		float AttackRadius = 75.0f; // Radius of the hitbox
+
+		TArray<FHitResult> HitResults;
+		FCollisionQueryParams QueryParams;
+		QueryParams.AddIgnoredActor(this); // Ignore the player character itself
+
+		bool bHit = GetWorld()->SweepMultiByChannel(
+			HitResults,
+			StartLocation,
+			EndLocation,
+			FQuat::Identity,
+			ECC_Pawn, // Check collisions with other Pawns (characters)
+			FCollisionShape::MakeSphere(AttackRadius),
+			QueryParams
+		);
+
+		if (bHit)
+		{
+			for (const FHitResult& Hit : HitResults)
+			{
+				// Attempt to cast to AChaosEnemy to ensure we only hit enemies
+				AChaosEnemy* HitEnemy = Cast<AChaosEnemy>(Hit.GetActor());
+				if (HitEnemy) // Only deal damage if it's an enemy
+				{
+					UGameplayStatics::ApplyDamage(
+						HitEnemy, // Apply damage to the enemy
+						MeleeDamage,
+						GetController(),
+						this,
+						UDamageType::StaticClass() // Generic damage type, can be customized later
+					);
+					UE_LOG(LogChaosCharacter, Log, TEXT("Player Melee attack hit: %s"), *GetNameSafe(HitEnemy));
+				}
+			}
+		}
+		
+		// Optional: Debug visualization of the attack area
+		// DrawDebugSphere(GetWorld(), (StartLocation + EndLocation) / 2.0f, AttackRadius, 16, FColor::Red, false, MeleeAttackMontage->GetPlayLength(), 0, 5.0f);
+	}
+	else
+	{
+		UE_LOG(LogChaosCharacter, Warning, TEXT("MeleeAttackMontage not assigned for %s"), *GetNameSafe(this));
+	}
+}
+
+// Added: Implementation of the function to reset the attack cooldown
+void AChaosCharacter::ResetAttackCooldown()
+{
+	bCanAttack = true;
+}
+
+// --- Spell Casting System ---
+void AChaosCharacter::StartSpellCast()
+{
+	// Check if the character can cast a spell and has enough Chaos
+	if (!bCanCastSpell || bIsVaulting || !AttributesComponent || AttributesComponent->GetChaos() < SpellChaosCost)
+	{
+		if (AttributesComponent && AttributesComponent->GetChaos() < SpellChaosCost)
+		{
+			UE_LOG(LogChaosCharacter, Log, TEXT("Not enough Chaos to cast spell! Current: %f, Cost: %f"), AttributesComponent->GetChaos(), SpellChaosCost);
+		}
+		return;
+	}
+
+	// Play casting animation
+	if (SpellCastMontage)
+	{
+		PlayAnimMontage(SpellCastMontage);
+	}
+	else
+	{
+		UE_LOG(LogChaosCharacter, Warning, TEXT("SpellCastMontage not assigned for %s"), *GetNameSafe(this));
+	}
+
+	// Spend Chaos resource
+	AttributesComponent->ApplyChaosChange(-SpellChaosCost);
+
+	// Set spell cast cooldown
+	bCanCastSpell = false;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_SpellCastCooldown, this, &AChaosCharacter::ResetSpellCastCooldown, SpellCastMontage ? SpellCastMontage->GetPlayLength() : 1.0f, false);
+	// If no montage, use a default cooldown of 1.0f
+
+	// --- Spawn Spell Projectile (placeholder) ---
+	if (SpellProjectileClass)
+	{
+		// Spawn location: a bit in front of the character's mesh
+		FVector SpawnLocation = GetMesh()->GetSocketLocation(TEXT("MuzzleSocket")); // Assuming a socket named "MuzzleSocket" on your character's mesh
+		if (SpawnLocation == FVector::ZeroVector) // Fallback if socket doesn't exist
+		{
+			SpawnLocation = GetActorLocation() + GetActorForwardVector() * 100.f + FVector(0,0,50.f);
+		}
+		
+		FRotator SpawnRotation = GetControlRotation(); // Projectile goes where the player is looking
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = GetInstigator();
+
+		AActor* Projectile = GetWorld()->SpawnActor<AActor>(SpellProjectileClass, SpawnLocation, SpawnRotation, SpawnParams);
+		if (Projectile)
+		{
+			UE_LOG(LogChaosCharacter, Log, TEXT("Spawned spell projectile: %s"), *GetNameSafe(Projectile));
+			// You would typically add ProjectileMovementComponent and damage logic to the SpellProjectileClass itself
+		}
+	}
+	else
+	{
+		UE_LOG(LogChaosCharacter, Warning, TEXT("SpellProjectileClass not assigned for %s"), *GetNameSafe(this));
+	}
+}
+
+// Added: Implementation of the function to reset the spell cast cooldown
+void AChaosCharacter::ResetSpellCastCooldown()
+{
+	bCanCastSpell = true;
+}
+
+// --- Player Death Handling ---
+// This function is called when the OnDeath delegate is broadcast, which itself is called from TakeDamage when health <= 0.
+// It has the same signature as the delegate.
+void AChaosCharacter::HandlePlayerDeath(AChaosCharacterBase* DeadCharacter)
+{
+    // Make sure it's actually *this* character that died, not some other character that happened to be bound.
+    if (DeadCharacter != this)
+    {
+        return;
+    }
+
+	// Call base class death logic (ragdoll, disable movement, etc.)
+	// The Die_Implementation function itself does not have a parameter, it's the delegate binding that requires it.
+	// So we call our own Die_Implementation here.
+	Die_Implementation(); // This handles the ragdoll and initial setup for death
+
+	UE_LOG(LogChaosCharacter, Display, TEXT("Player Character has died. Game Over!"));
+
+	// You can add more complex game over logic here:
+	// - Show a "Game Over" UI widget
+	// - Restart the level
+	// - Go to a main menu
+	
+	// For now, let's just restart the current level as a basic "Game Over".
+	// This will typically be handled by the GameMode or PlayerController in a real game.
+	AChaosGameMode* GameMode = Cast<AChaosGameMode>(GetWorld()->GetAuthGameMode());
+	if (GameMode)
+	{
+		// Later, you might have a dedicated "RestartLevel" or "GameOver" function in GameMode
+		// For now, we simulate a simple restart.
+		GetWorld()->ServerTravel(GetWorld()->GetMapName(), false); // This works in editor and packaged builds
+	}
+	else
+	{
+		UE_LOG(LogChaosCharacter, Error, TEXT("Could not cast to ChaosGameMode to handle game over."));
+	}
+}
+
 
 //~ Animation Interface
 float AChaosCharacter::GetSpeed() const

@@ -14,6 +14,10 @@ class UInputAction;
 class UAnimMontage;
 struct FInputActionValue;
 
+// Forward Declaration for AChaosEnemy to avoid circular dependencies if needed later, 
+// though the include in .cpp will handle most cases.
+class AChaosEnemy; 
+
 DECLARE_LOG_CATEGORY_EXTERN(LogChaosCharacter, Log, All);
 
 UENUM(BlueprintType)
@@ -29,7 +33,7 @@ enum class EMantleState : uint8
  * and adds player-specific logic like input and camera control.
  */
 UCLASS(abstract)
-class AChaosCharacter : public AChaosCharacterBase // MODIFIED: Changed inheritance from ACharacter
+class AChaosCharacter : public AChaosCharacterBase
 {
 	GENERATED_BODY()
 
@@ -58,14 +62,19 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 	//~ End APawn Interface
 
-private:
+	// Overriding the Die_Implementation from AChaosCharacterBase for player-specific death logic.
+	// We mark it as BlueprintNativeEvent because the base class does, and it's good practice
+	// to keep the override consistent, even if its main use here is to trigger Game Over.
+	virtual void Die_Implementation() override;
+
+private: // Changed to private for strict encapsulation, but properties are UPROPERTY so accessible in Blueprint
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<USpringArmComponent> CameraBoom;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Camera", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCameraComponent> FollowCamera;
 	
-protected:
+protected: // Changed to protected for easier access in Blueprint subclasses if any, still meta=AllowPrivateAccess for strictness
 	// --- Input Actions ---
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
 	TObjectPtr<UInputAction> JumpAction;
@@ -82,19 +91,33 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
 	TObjectPtr<UInputAction> DashAction;
 
+	// Input Action for the melee attack
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
+	TObjectPtr<UInputAction> AttackAction;
+
+	// Added: Input Action for spell casting
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
+	TObjectPtr<UInputAction> CastSpellAction;
+
 	// --- Input Handlers ---
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void StartDash();
+	
+	// Handler for the melee attack
+	void AttackMelee();
 
-public:
+	// Added: Handler for spell casting
+	void StartSpellCast();
+
+public: // Changed to public for Blueprint Callable functions
 	UFUNCTION(BlueprintCallable, Category="Chaos|Input")
 	virtual void DoMove(float Right, float Forward);
 
 	UFUNCTION(BlueprintCallable, Category="Chaos|Input")
 	virtual void DoLook(float Yaw, float Pitch);
 
-protected:
+protected: // Changed to protected for easier access in Blueprint subclasses
 	// --- Core Movement Properties ---
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Movement")
 	float MovementSpeedDefault = 1000.f;
@@ -141,14 +164,34 @@ protected:
     float MantleFastSpeedThreshold = 600.f;
 
     // --- Animation Montages ---
-    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation") // Changed to BlueprintReadOnly
     TObjectPtr<UAnimMontage> DashMontage;
 
-    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation") // Changed to BlueprintReadOnly
     TObjectPtr<UAnimMontage> MantleMontage_Normal;
     
-    UPROPERTY(EditDefaultsOnly, Category = "Chaos|Animation")
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation") // Changed to BlueprintReadOnly
     TObjectPtr<UAnimMontage> MantleMontage_Fast;
+
+	// Animation Montage for the melee attack
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation") // Changed to BlueprintReadOnly
+	TObjectPtr<UAnimMontage> MeleeAttackMontage;
+
+	// Added: Animation Montage for spell casting
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation")
+	TObjectPtr<UAnimMontage> SpellCastMontage;
+
+	// Damage for the melee attack
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Combat") // Changed to BlueprintReadOnly
+	float MeleeDamage = 30.f;
+
+	// Added: Chaos cost for spell casting
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Combat")
+	float SpellChaosCost = 25.f;
+
+	// Added: Projectile class to spawn for spells
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Combat")
+	TSubclassOf<AActor> SpellProjectileClass;
 	
 private:
 	// --- Dash System ---
@@ -178,6 +221,20 @@ private:
 	float ForwardInputValue = 0.f;
 	float DefaultGravityScale = 1.f;
 	FTimerHandle TimerHandle_VaultCooldown;
+
+	// Controls whether the character can attack
+	bool bCanAttack = true;
+	FTimerHandle TimerHandle_AttackCooldown;
+	void ResetAttackCooldown();
+
+	// Added: Controls whether the character can cast a spell
+	bool bCanCastSpell = true;
+	FTimerHandle TimerHandle_SpellCastCooldown;
+	void ResetSpellCastCooldown(); // Added: Function to reset spell cast cooldown
+
+	// Added: A specific handler for player death, matching the OnDeath delegate signature.
+	UFUNCTION() // UFUNCTION is required for delegates to bind successfully
+	void HandlePlayerDeath(AChaosCharacterBase* DeadCharacter);
 
 public:
 	FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }

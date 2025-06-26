@@ -7,7 +7,7 @@
 #include "ChaosGameMode.generated.h"
 
 /**
- *  Simple GameMode for a third person game
+ * Simple GameMode for a third person game
  */
 UCLASS(abstract)
 class AChaosGameMode : public AGameModeBase

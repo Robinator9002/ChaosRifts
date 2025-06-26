@@ -9,8 +9,8 @@
 class UInputMappingContext;
 
 /**
- *  Basic PlayerController class for a third person game
- *  Manages input mappings
+ * Basic PlayerController class for a third person game
+ * Manages input mappings
  */
 UCLASS(abstract)
 class AChaosPlayerController : public APlayerController
