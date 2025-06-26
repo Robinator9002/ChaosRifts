@@ -5,7 +5,7 @@
 #include "CoreMinimal.h"
 #include "Characters/Base/ChaosCharacterBase.h"
 #include "Logging/LogMacros.h"
-#include "ChaosCharacter.generated.h"
+#include "ChaosCharacter.generated.ah"
 
 class USpringArmComponent;
 class UCameraComponent;
@@ -173,9 +173,10 @@ protected: // Changed to protected for easier access in Blueprint subclasses
     UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation") // Changed to BlueprintReadOnly
     TObjectPtr<UAnimMontage> MantleMontage_Fast;
 
-	// Animation Montage for the melee attack
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation") // Changed to BlueprintReadOnly
-	TObjectPtr<UAnimMontage> MeleeAttackMontage;
+	// Animation Montages for the melee attack combo
+	// Changed from single UAnimMontage to TArray<TObjectPtr<UAnimMontage>>
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation")
+	TArray<TObjectPtr<UAnimMontage>> MeleeAttackMontages;
 
 	// Added: Animation Montage for spell casting
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation")
@@ -192,6 +193,10 @@ protected: // Changed to protected for easier access in Blueprint subclasses
 	// Added: Projectile class to spawn for spells
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Combat")
 	TSubclassOf<AActor> SpellProjectileClass;
+
+	// Maximum time after an attack completes to register a combo input
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Combat")
+	float ComboWindowDuration = 0.5f;
 	
 private:
 	// --- Dash System ---
@@ -223,10 +228,23 @@ private:
 	FTimerHandle TimerHandle_VaultCooldown;
 
 	// Controls whether the character can attack
-	bool bCanAttack = true;
-	FTimerHandle TimerHandle_AttackCooldown;
-	void ResetAttackCooldown();
+	// This will now specifically mean if any attack is in progress or on a global cooldown.
+	bool bCanAttack = true; 
+	FTimerHandle TimerHandle_GlobalAttackCooldown; // Renamed for clarity
 
+	// --- Melee Combo System ---
+	bool bInComboWindow = false; // True if the character just finished an attack and can start a combo
+	int32 CurrentComboIndex = 0; // The index of the next montage to play in the combo sequence
+	FTimerHandle TimerHandle_ComboWindow; // Timer for the combo input window
+
+	// Resets the combo state
+	void ResetCombo();
+	// Called when an attack montage finishes playing, to open the combo window
+	UFUNCTION()
+	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
+
+	void ResetAttackCooldown(); // This will now reset bCanAttack
+	
 	// Added: Controls whether the character can cast a spell
 	bool bCanCastSpell = true;
 	FTimerHandle TimerHandle_SpellCastCooldown;

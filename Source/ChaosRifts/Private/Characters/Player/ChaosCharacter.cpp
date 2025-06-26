@@ -65,6 +65,13 @@ void AChaosCharacter::BeginPlay()
 	// Bind the OnDeath delegate for the player character to a specific handler
 	// The delegate requires a function that takes an AChaosCharacterBase* parameter.
 	OnDeath.AddDynamic(this, &AChaosCharacter::HandlePlayerDeath); 
+
+	// Bind the OnMontageEnded delegate to our custom function for combo logic
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance)
+	{
+		AnimInstance->OnMontageEnded.AddDynamic(this, &AChaosCharacter::OnAttackMontageEnded);
+	}
 }
 
 void AChaosCharacter::Tick(float DeltaTime)
@@ -314,24 +321,44 @@ void AChaosCharacter::ResetVaultCooldown()
 // --- Melee System ---
 void AChaosCharacter::AttackMelee()
 {
-	// Check if the character can attack (e.g., no other attack active or cooldown)
+	// Check if the character can attack (e.g., no other attack active or global cooldown)
 	if (!bCanAttack || bIsVaulting)
 	{
 		return;
 	}
 
-	// Check if an attack animation is assigned
-	if (MeleeAttackMontage)
+	// If we are in a combo window, try to play the next montage
+	if (bInComboWindow)
 	{
-		// Play the attack animation
-		PlayAnimMontage(MeleeAttackMontage);
+		// Advance the combo index, looping back to 0 if we exceed the array size
+		CurrentComboIndex = (CurrentComboIndex + 1) % MeleeAttackMontages.Num();
+		UE_LOG(LogChaosCharacter, Log, TEXT("Combo Attack! Playing montage index: %d"), CurrentComboIndex);
+	}
+	else // Not in combo window, start a new combo (or single attack)
+	{
+		CurrentComboIndex = 0; // Always start with the first montage for a new attack
+		UE_LOG(LogChaosCharacter, Log, TEXT("New Attack! Starting with montage index: %d"), CurrentComboIndex);
+	}
 
-		// Disable attack capability for the duration of a cooldown
+	// Check if there are any montages in the array
+	if (MeleeAttackMontages.IsValidIndex(CurrentComboIndex) && MeleeAttackMontages[CurrentComboIndex])
+	{
+		UAnimMontage* MontageToPlay = MeleeAttackMontages[CurrentComboIndex];
+		
+		// Play the attack animation
+		PlayAnimMontage(MontageToPlay);
+
+		// Immediately disable attack capability until the current animation ends
+		// This prevents spamming the same attack before the animation has a chance to play.
 		bCanAttack = false;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle_AttackCooldown, this, &AChaosCharacter::ResetAttackCooldown, MeleeAttackMontage->GetPlayLength() * 0.8f, false);
+		GetWorld()->GetTimerManager().SetTimer(TimerHandle_GlobalAttackCooldown, this, &AChaosCharacter::ResetAttackCooldown, MontageToPlay->GetPlayLength() * 0.8f, false);
 		// The cooldown is set to 80% of the animation length here for a fluid feel
 		// and to prevent immediate new attacks.
 		// This can later be replaced with Animation Notifies for precise hitbox timing.
+
+		// Reset the combo window timer (it will be started by OnAttackMontageEnded)
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_ComboWindow);
+		bInComboWindow = false; // Reset for now, will be set true on montage end
 
 		// Perform a simple sphere trace to find enemies in melee range and deal damage.
 		// This is a very simplified hitbox, which should be refined later with Animation Notifies.
@@ -374,19 +401,54 @@ void AChaosCharacter::AttackMelee()
 		}
 		
 		// Optional: Debug visualization of the attack area
-		// DrawDebugSphere(GetWorld(), (StartLocation + EndLocation) / 2.0f, AttackRadius, 16, FColor::Red, false, MeleeAttackMontage->GetPlayLength(), 0, 5.0f);
+		// DrawDebugSphere(GetWorld(), (StartLocation + EndLocation) / 2.0f, AttackRadius, 16, FColor::Red, false, MontageToPlay->GetPlayLength(), 0, 5.0f);
 	}
 	else
 	{
-		UE_LOG(LogChaosCharacter, Warning, TEXT("MeleeAttackMontage not assigned for %s"), *GetNameSafe(this));
+		UE_LOG(LogChaosCharacter, Warning, TEXT("MeleeAttackMontages array is empty or index %d is invalid for %s"), CurrentComboIndex, *GetNameSafe(this));
 	}
 }
 
-// Added: Implementation of the function to reset the attack cooldown
+// Called when an attack montage finishes playing
+void AChaosCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
+{
+	// Check if the ended montage is one of our melee attack montages
+	if (MeleeAttackMontages.Contains(Montage))
+	{
+		// Only open the combo window if the montage was NOT interrupted
+		if (!bInterrupted)
+		{
+			bInComboWindow = true;
+			GetWorld()->GetTimerManager().SetTimer(TimerHandle_ComboWindow, this, &AChaosCharacter::ResetCombo, ComboWindowDuration, false);
+			UE_LOG(LogChaosCharacter, Log, TEXT("Attack montage ended. Combo window open."));
+		}
+		else
+		{
+			// If interrupted, reset combo immediately
+			ResetCombo();
+			UE_LOG(LogChaosCharacter, Log, TEXT("Attack montage interrupted. Combo reset."));
+		}
+		
+		// Also reset the global attack cooldown if it was tied to this montage
+		// This ensures we can attack again even if the combo window closes without a follow-up
+		ResetAttackCooldown();
+	}
+}
+
 void AChaosCharacter::ResetAttackCooldown()
 {
 	bCanAttack = true;
+	UE_LOG(LogChaosCharacter, Log, TEXT("Attack cooldown reset."));
 }
+
+void AChaosCharacter::ResetCombo()
+{
+	bInComboWindow = false;
+	CurrentComboIndex = 0; // Reset combo to the first attack
+	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_ComboWindow); // Clear the timer as combo is reset
+	UE_LOG(LogChaosCharacter, Log, TEXT("Combo state reset."));
+}
+
 
 // --- Spell Casting System ---
 void AChaosCharacter::StartSpellCast()
