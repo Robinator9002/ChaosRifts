@@ -351,10 +351,8 @@ void AChaosCharacter::AttackMelee()
 		// Immediately disable attack capability until the current animation ends
 		// This prevents spamming the same attack before the animation has a chance to play.
 		bCanAttack = false;
-		GetWorld()->GetTimerManager().SetTimer(TimerHandle_GlobalAttackCooldown, this, &AChaosCharacter::ResetAttackCooldown, MontageToPlay->GetPlayLength() * 0.8f, false);
-		// The cooldown is set to 80% of the animation length here for a fluid feel
-		// and to prevent immediate new attacks.
-		// This can later be replaced with Animation Notifies for precise hitbox timing.
+		// Removed the timer here. bCanAttack will now only be reset by OnAttackMontageEnded.
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_GlobalAttackCooldown); // Clear any existing timer just in case
 
 		// Reset the combo window timer (it will be started by OnAttackMontageEnded)
 		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_ComboWindow);
@@ -429,8 +427,8 @@ void AChaosCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrup
 			UE_LOG(LogChaosCharacter, Log, TEXT("Attack montage interrupted. Combo reset."));
 		}
 		
-		// Also reset the global attack cooldown if it was tied to this montage
-		// This ensures we can attack again even if the combo window closes without a follow-up
+		// Always reset the global attack cooldown when the montage officially ends or is interrupted.
+		// This is now the ONLY place where bCanAttack is set back to true for attacks.
 		ResetAttackCooldown();
 	}
 }
