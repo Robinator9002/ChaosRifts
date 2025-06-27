@@ -8,11 +8,11 @@
 AWeapon::AWeapon()
 {
 	WeaponMesh = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("WeaponMesh"));
-	// Setze das Waffen-Mesh als das neue Root-Component, da es das sichtbare Hauptelement ist.
-	// Das SceneRoot von AItem ist hier nicht mehr nötig.
+	// Set the weapon mesh as the new root component, as it is the main visible element.
+	// The SceneRoot from AItem is no longer needed here.
 	RootComponent = WeaponMesh;
 
-	// Initialzustand und Schaden
+	// Initial state and damage
 	CurrentWeaponState = EWeaponState::Passive;
 	Damage = 25.f;
 }
@@ -21,7 +21,7 @@ void AWeapon::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Binde unsere Handle-Funktion an das Overlap-Delegate der Basisklasse.
+	// Bind our handle function to the base class's overlap delegate.
 	OnItemOverlap.AddDynamic(this, &AWeapon::HandleItemOverlap);
 }
 
@@ -29,8 +29,8 @@ void AWeapon::SetWeaponState(EWeaponState NewState)
 {
 	CurrentWeaponState = NewState;
 
-	// Wenn die Waffe in den passiven Zustand zurückkehrt, leeren wir die Liste der
-	// getroffenen Actors, damit der nächste Angriff wieder frisch ist.
+	// When the weapon returns to the passive state, we clear the list of
+	// hit actors so that the next attack is fresh.
 	if (NewState == EWeaponState::Passive)
 	{
 		DamagedActorsInSwing.Empty();
@@ -39,36 +39,33 @@ void AWeapon::SetWeaponState(EWeaponState NewState)
 
 void AWeapon::HandleItemOverlap(AActor* OverlappedActor, bool bIsOverlapping)
 {
-	// Wir interessieren uns nur für beginnende Overlaps, während die Waffe aggressiv ist.
+	// We are only interested in beginning overlaps while the weapon is aggressive.
 	if (CurrentWeaponState == EWeaponState::Aggressive && bIsOverlapping)
 	{
-		// Stelle sicher, dass der Besitzer der Waffe gültig ist.
+		// Ensure the owner of the weapon is valid.
 		AActor* MyOwner = GetOwner();
 		if (!MyOwner)
 		{
 			return;
 		}
 
-		// Verhindere, dass wir denselben Actor im selben Schwung mehrmals treffen.
+		// Prevent hitting the same actor multiple times in the same swing.
 		if (DamagedActorsInSwing.Contains(OverlappedActor))
 		{
 			return;
 		}
 
-		// Füge den getroffenen Actor zur Liste hinzu.
+		// Add the hit actor to the list.
 		DamagedActorsInSwing.Add(OverlappedActor);
 
-		// Verursache Schaden.
+		// Apply damage.
 		AController* InstigatorController = MyOwner->GetInstigatorController();
 		UGameplayStatics::ApplyDamage(
 			OverlappedActor,
 			Damage,
 			InstigatorController,
-			this, // Der DamageCauser ist die Waffe selbst
-			UDamageType::StaticClass()
+			this, // The damage causer is this weapon actor
+			nullptr // The damage type class. Can be null.
 		);
-
-		// Optional: Log für Debugging
-		UE_LOG(LogTemp, Log, TEXT("Weapon '%s' hit '%s' for %f damage."), *GetName(), *OverlappedActor->GetName(), Damage);
 	}
 }

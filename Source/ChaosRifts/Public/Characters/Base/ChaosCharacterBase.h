@@ -7,13 +7,13 @@
 #include "ChaosCharacterBase.generated.h"
 
 class UChaosAttributes;
-class AWeapon; // Forward declaration für die Waffenklasse
+class AWeapon; // Forward declaration for the weapon class
 
 // A delegate that is broadcast when a character dies.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeathDelegate, AChaosCharacterBase*, DeadCharacter);
 
 /**
- * Die Basisklasse für alle Charaktere, jetzt mit einem erweiterbaren Waffensystem.
+ * The base class for all characters, now with an extensible weapon system.
  */
 UCLASS(abstract)
 class CHAOSRIFTS_API AChaosCharacterBase : public ACharacter
@@ -42,55 +42,53 @@ public:
 	UPROPERTY(BlueprintAssignable, Category = "Chaos|Combat")
 	FOnDeathDelegate OnDeath;
 	
-	/** Gibt die aktuell ausgerüstete Waffe zurück. */
-	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat")
+	/** Returns the currently equipped weapon. */
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
 	AWeapon* GetCurrentWeapon() const;
-
-protected:
-	virtual void BeginPlay() override;
 	
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Components", meta = (AllowPrivateAccess = "true"))
-	TObjectPtr<UChaosAttributes> AttributesComponent;
-
 	//~==============================================================================================
 	//~ Weapon System
 	//~==============================================================================================
+	
+protected:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Character")
+	TObjectPtr<UChaosAttributes> AttributesComponent;
 
-	/** Eine Liste von Waffenklassen, die dieser Charakter bei Spielbeginn erhalten soll. */
+	/** The weapon classes that this character should receive by default when spawning. */
 	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Combat|Weapons")
 	TArray<TSubclassOf<AWeapon>> DefaultWeapons;
 
-	/** Das Array, das die Instanzen der gespawnten Waffen enthält. */
+	/** The array containing the instances of the spawned weapons. */
 	UPROPERTY(BlueprintReadOnly, Category = "Chaos|Combat|Weapons")
 	TArray<TObjectPtr<AWeapon>> Weapons;
 
-	/** Ein Zeiger auf die aktuell ausgerüstete Waffe. */
+	/** A pointer to the currently equipped weapon. */
 	UPROPERTY(BlueprintReadOnly, Category = "Chaos|Combat|Weapons")
 	TObjectPtr<AWeapon> CurrentWeapon;
 	
-	/** Der Index der aktuell ausgerüsteten Waffe im 'Weapons'-Array. */
+	/** The index of the currently equipped weapon in the 'Weapons' array. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Chaos|Combat|Weapons")
 	int32 CurrentWeaponIndex;
 
 	/**
-	 * Spawnt die Waffen aus dem DefaultWeapons-Array und hängt sie an den Charakter.
-	 * Muss in abgeleiteten Klassen aufgerufen werden (normalerweise in BeginPlay).
+	 * Spawns the weapons from the DefaultWeapons array and attaches them to the character.
+	 * Must be called in derived classes (usually in BeginPlay).
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
 	virtual void SpawnAndEquipWeapons();
 
 	/**
-	 * Rüstet eine Waffe aus dem 'Weapons'-Array aus.
-	 * @param WeaponIndex Der Index der Waffe, die ausgerüstet werden soll.
+	 * Equips a weapon from the 'Weapons' array.
+	 * @param WeaponIndex The index of the weapon to be equipped.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
 	virtual void EquipWeapon(int32 WeaponIndex);
 
-	/** Wechselt zur nächsten verfügbaren Waffe im Inventar. */
+	/** Switches to the next available weapon in the inventory. */
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
-	virtual void SwapToNextWeapon();
-	
-	/** Wechselt zur vorherigen verfügbaren Waffe im Inventar. */
+	void SwapToNextWeapon();
+
+	/** Switches to the previous available weapon in the inventory. */
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
-	virtual void SwapToPreviousWeapon();
+	void SwapToPreviousWeapon();
 };

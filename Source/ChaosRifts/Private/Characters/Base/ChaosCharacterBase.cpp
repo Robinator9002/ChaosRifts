@@ -5,26 +5,26 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Items/Weapons/Weapon.h" // Wichtig: Die neue Waffenklasse inkludieren
+#include "Items/Weapons/Weapon.h" // Important: Include the new weapon class
 
 AChaosCharacterBase::AChaosCharacterBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
 	AttributesComponent = CreateDefaultSubobject<UChaosAttributes>(TEXT("AttributesComponent"));
-	CurrentWeaponIndex = -1; // -1 bedeutet, dass keine Waffe ausgerüstet ist
+	CurrentWeaponIndex = -1; // -1 means no weapon is equipped
 }
 
 void AChaosCharacterBase::BeginPlay()
 {
 	Super::BeginPlay();
-	// Wir rufen das Spawnen der Waffen hier auf, damit jeder Character, der erbt,
-	// automatisch seine Waffen bekommt.
+	// We call the weapon spawning here so that every inheriting character
+	// automatically gets their weapons.
 	SpawnAndEquipWeapons();
 }
 
 void AChaosCharacterBase::SpawnAndEquipWeapons()
 {
-	// Zerstöre alte Waffen, falls diese Funktion erneut aufgerufen wird
+	// Destroy old weapons if this function is called again
 	for (AWeapon* Weapon : Weapons)
 	{
 		if (Weapon)
@@ -34,9 +34,11 @@ void AChaosCharacterBase::SpawnAndEquipWeapons()
 	}
 	Weapons.Empty();
 	CurrentWeapon = nullptr;
+    CurrentWeaponIndex = -1; // -1 means no weapon is active
 
 	if (DefaultWeapons.Num() > 0)
 	{
+		// We have valid weapon classes to spawn
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 		SpawnParams.Instigator = this;
@@ -48,44 +50,49 @@ void AChaosCharacterBase::SpawnAndEquipWeapons()
 				AWeapon* NewWeapon = GetWorld()->SpawnActor<AWeapon>(WeaponClass, SpawnParams);
 				if (NewWeapon)
 				{
-					// Waffe an den Charakter attachen. Wir verwenden hier einen Socket namens "WeaponSocket".
-					// Du musst diesen Socket in deinem Charakter-Skelett erstellen!
-					// Für mehrere Waffen könnten Sockets wie "WeaponPrimarySocket", "WeaponHolsterSocket_Back" etc. verwendet werden.
-					// Für dieses erweiterbare System gehen wir von einem einzigen Ankerpunkt aus; das Hiding/Unhiding regelt die Darstellung.
-					NewWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("WeaponSocket"));
 					Weapons.Add(NewWeapon);
+					// Socket to which the weapon is attached
+					NewWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("WeaponSocket"));
+					NewWeapon->SetActorHiddenInGame(true); // Hide the weapon initially
 				}
 			}
 		}
 
-		// Rüste die erste Waffe in der Liste standardmäßig aus.
-		EquipWeapon(0);
+		if (Weapons.Num() > 0)
+		{
+			// We have spawned at least one weapon, so equip the first one.
+			EquipWeapon(0);
+		}
 	}
 }
 
 void AChaosCharacterBase::EquipWeapon(int32 WeaponIndex)
 {
-	if (!Weapons.IsValidIndex(WeaponIndex) || Weapons[WeaponIndex] == nullptr)
+	if (WeaponIndex < 0 || WeaponIndex >= Weapons.Num() || Weapons[WeaponIndex] == nullptr)
 	{
+		// Invalid index or no weapons available
 		return;
 	}
 
-	// Verstecke die aktuell ausgerüstete Waffe, falls eine existiert
+	// Hide the old weapon if one was present
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->SetActorHiddenInGame(true);
-		CurrentWeapon->SetWeaponState(EWeaponState::Passive);
 	}
 
-	// Setze die neue Waffe als aktuell
+	CurrentWeapon = Weapons[WeaponIndex];
 	CurrentWeaponIndex = WeaponIndex;
-	CurrentWeapon = Weapons[CurrentWeaponIndex];
+	CurrentWeapon->SetActorHiddenInGame(false); // Show the new weapon
+}
 
-	// Zeige die neue Waffe und setze ihren Zustand zurück
+void AChaosCharacterBase::StartAttack()
+{
+	// The logic for an attack would be implemented here.
+	// For example: play animation, enable weapon collision etc.
+	// UE_LOG(LogTemp, Warning, TEXT("Attack started by %s"), *GetNameSafe(this));
 	if (CurrentWeapon)
 	{
-		CurrentWeapon->SetActorHiddenInGame(false);
-		CurrentWeapon->SetWeaponState(EWeaponState::Passive);
+		// This will be expanded in the future, e.g. to switch the weapon to "aggressive" state.
 	}
 }
 
@@ -143,11 +150,4 @@ void AChaosCharacterBase::Die_Implementation()
 	GetMesh()->SetSimulatePhysics(true);
 
 	OnDeath.Broadcast(this);
-}
-
-void AChaosCharacterBase::StartAttack()
-{
-	// Die Logik hier wird nun spezifischer in den Child-Klassen sein,
-	// da sie die Animationen steuern, die wiederum die Waffe "scharf schalten".
-	UE_LOG(LogTemp, Log, TEXT("%s starts a generic attack."), *GetNameSafe(this));
 }

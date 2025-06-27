@@ -1,66 +1,71 @@
 // Copyright Robinator Studios, Inc. All Rights Reserved.
 
-#pragma once
-
-#include "CoreMinimal.h"
 #include "Items/Item.h"
-#include "Weapon.generated.h"
+#include "Components/CapsuleComponent.h"
 
-class USkeletalMeshComponent;
-
-UENUM(BlueprintType)
-enum class EWeaponState : uint8
+AItem::AItem()
 {
-	// Die Waffe ist sicher, Overlaps verursachen keinen Schaden.
-	Passive,
-	// Die Waffe ist "heiß", Overlaps verursachen Schaden.
-	Aggressive 
-};
+	PrimaryActorTick.bCanEverTick = false;
 
-/**
- * AWeapon ist eine spezielle Art von AItem, die Schaden verursachen kann.
- * Sie hat Zustände, um zu kontrollieren, wann sie aktiv Schaden austeilt.
- */
-UCLASS()
-class CHAOSRIFTS_API AWeapon : public AItem
+	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
+	RootComponent = SceneRoot;
+}
+
+void AItem::BeginPlay()
 {
-	GENERATED_BODY()
+	Super::BeginPlay();
 
-public:
-	AWeapon();
+	// Go through all CapsuleComponents already added in the editor and bind the overlap events.
+	// This is useful if the capsules are created directly in a Blueprint child of AItem.
+	TArray<UCapsuleComponent*> AllCapsules;
+	GetComponents<UCapsuleComponent>(AllCapsules);
+	for (UCapsuleComponent* Capsule : AllCapsules)
+	{
+		AddHitCapsule(Capsule);
+	}
+}
 
-	// Das Mesh der Waffe
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon|Components")
-	TObjectPtr<USkeletalMeshComponent> WeaponMesh;
+void AItem::AddHitCapsule(UCapsuleComponent* CapsuleToAdd)
+{
+	if (CapsuleToAdd && !HitCapsules.Contains(CapsuleToAdd))
+	{
+		HitCapsules.Add(CapsuleToAdd);
+		
+		// Bind the overlap events for this specific capsule
+		CapsuleToAdd->OnComponentBeginOverlap.AddDynamic(this, &AItem::OnHitCapsuleBeginOverlap);
+		CapsuleToAdd->OnComponentEndOverlap.AddDynamic(this, &AItem::OnHitCapsuleEndOverlap);
+	}
+}
 
-	/**
-	 * Setzt den Zustand der Waffe.
-	 * @param NewState Der neue Zustand (Passiv oder Aggressiv).
-	 */
-	UFUNCTION(BlueprintCallable, Category = "Weapon|State")
-	void SetWeaponState(EWeaponState NewState);
+void AItem::OnHitCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
+{
+	// Ignore the owner of the item (e.g., the character holding it) and the item itself.
+	if (OtherActor == GetOwner() || OtherActor == this)
+	{
+		return;
+	}
 
-	/** Gibt den aktuellen Zustand der Waffe zurück. */
-	UFUNCTION(BlueprintCallable, Category = "Weapon|State")
-	EWeaponState GetWeaponState() const { return CurrentWeaponState; }
+	// Add the actor to the list if it's not already in it
+	if (!OverlappingActors.Contains(OtherActor))
+	{
+		OverlappingActors.Add(OtherActor);
+		// Send an event that a new actor is overlapping
+		OnItemOverlap.Broadcast(OtherActor, true);
+	}
+}
 
-protected:
-	virtual void BeginPlay() override;
+void AItem::OnHitCapsuleEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
+{
+    // Ignore the owner of the item (e.g., the character holding it) and the item itself.
+	if (OtherActor == GetOwner() || OtherActor == this)
+	{
+		return;
+	}
 
-	// Der Schaden, den diese Waffe pro Treffer verursacht.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Combat")
-	float Damage;
-
-private:
-	// Der aktuelle Zustand der Waffe. Standardmäßig passiv.
-	UPROPERTY(VisibleAnywhere, Category = "Weapon|State")
-	EWeaponState CurrentWeaponState;
-
-	// Funktion, die aufgerufen wird, wenn das OnItemOverlap-Delegate der Basisklasse feuert.
-	UFUNCTION()
-	void HandleItemOverlap(AActor* OverlappedActor, bool bIsOverlapping);
-
-	// Eine Liste von Actors, die in diesem "Angriffsschwung" bereits Schaden erhalten haben,
-	// um zu verhindern, dass ein einzelner Schwung mehrfach Schaden verursacht.
-	TArray<TObjectPtr<AActor>> DamagedActorsInSwing;
-};
+	// Remove the actor from the list
+	if (OverlappingActors.Remove(OtherActor) > 0)
+	{
+		// Send an event that the actor is no longer overlapping
+		OnItemOverlap.Broadcast(OtherActor, false);
+	}
+}

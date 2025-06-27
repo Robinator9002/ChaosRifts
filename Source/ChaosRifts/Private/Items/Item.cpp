@@ -15,8 +15,8 @@ void AItem::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Gehe durch alle bereits im Editor hinzugefügten CapsuleComponents und binde die Overlap-Events.
-	// Das ist nützlich, wenn die Kapseln direkt in einem Blueprint-Child von AItem erstellt werden.
+	// Go through all CapsuleComponents already added in the editor and bind the overlap events.
+	// This is useful if the capsules are created directly in a Blueprint child of AItem.
 	TArray<UCapsuleComponent*> AllCapsules;
 	GetComponents<UCapsuleComponent>(AllCapsules);
 	for (UCapsuleComponent* Capsule : AllCapsules)
@@ -31,7 +31,7 @@ void AItem::AddHitCapsule(UCapsuleComponent* CapsuleToAdd)
 	{
 		HitCapsules.Add(CapsuleToAdd);
 		
-		// Binde die Overlap-Events für diese spezifische Kapsel
+		// Bind the overlap events for this specific capsule
 		CapsuleToAdd->OnComponentBeginOverlap.AddDynamic(this, &AItem::OnHitCapsuleBeginOverlap);
 		CapsuleToAdd->OnComponentEndOverlap.AddDynamic(this, &AItem::OnHitCapsuleEndOverlap);
 	}
@@ -39,31 +39,33 @@ void AItem::AddHitCapsule(UCapsuleComponent* CapsuleToAdd)
 
 void AItem::OnHitCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	// Ignoriere den Besitzer des Items (z.B. den Charakter, der es hält) und das Item selbst.
+	// Ignore the owner of the item (e.g., the character holding it) and the item itself.
 	if (OtherActor == GetOwner() || OtherActor == this)
 	{
 		return;
 	}
 
-	// Füge den Actor zur Liste hinzu, wenn er noch nicht drin ist
+	// Add the actor to the list if it's not already in it
 	if (!OverlappingActors.Contains(OtherActor))
 	{
 		OverlappingActors.Add(OtherActor);
-		// Sende ein Event, dass ein neuer Actor überlappt
+		// Send an event that a new actor is overlapping
 		OnItemOverlap.Broadcast(OtherActor, true);
 	}
 }
 
 void AItem::OnHitCapsuleEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
+    // Ignore the owner of the item (e.g., the character holding it) and the item itself.
 	if (OtherActor == GetOwner() || OtherActor == this)
 	{
 		return;
 	}
-	
-	// Entferne den Actor aus der Liste und sende ein Event
+
+	// Remove the actor from the list
 	if (OverlappingActors.Remove(OtherActor) > 0)
 	{
+		// Send an event that the actor is no longer overlapping
 		OnItemOverlap.Broadcast(OtherActor, false);
 	}
 }
