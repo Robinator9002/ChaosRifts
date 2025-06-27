@@ -4,10 +4,11 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
+#include "Items/Weapons/Weapon.h" // Include the full weapon definition
 #include "ChaosCharacterBase.generated.h"
 
 class UChaosAttributes;
-class AWeapon; // Forward declaration for the weapon class
+// No longer need the forward declaration: class AWeapon; 
 
 // A delegate that is broadcast when a character dies.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeathDelegate, AChaosCharacterBase*, DeadCharacter);

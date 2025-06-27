@@ -1,71 +1,69 @@
 // Copyright Robinator Studios, Inc. All Rights Reserved.
 
+#pragma once
+
+#include "CoreMinimal.h"
 #include "Items/Item.h"
-#include "Components/CapsuleComponent.h"
+#include "Weapon.generated.h"
 
-AItem::AItem()
+UENUM(BlueprintType)
+enum class EWeaponState : uint8
 {
-	PrimaryActorTick.bCanEverTick = false;
+	// The weapon is safe, overlaps cause no damage.
+	Passive,
+	// The weapon is "hot", overlaps cause damage.
+	Aggressive 
+};
 
-	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
-	RootComponent = SceneRoot;
-}
-
-void AItem::BeginPlay()
+/**
+ * AWeapon is a special type of AItem that can cause damage.
+ * It has states to control when it actively deals damage.
+ */
+UCLASS()
+class CHAOSRIFTS_API AWeapon : public AItem
 {
-	Super::BeginPlay();
+	GENERATED_BODY()
 
-	// Go through all CapsuleComponents already added in the editor and bind the overlap events.
-	// This is useful if the capsules are created directly in a Blueprint child of AItem.
-	TArray<UCapsuleComponent*> AllCapsules;
-	GetComponents<UCapsuleComponent>(AllCapsules);
-	for (UCapsuleComponent* Capsule : AllCapsules)
-	{
-		AddHitCapsule(Capsule);
-	}
-}
+public:
+	AWeapon();
 
-void AItem::AddHitCapsule(UCapsuleComponent* CapsuleToAdd)
-{
-	if (CapsuleToAdd && !HitCapsules.Contains(CapsuleToAdd))
-	{
-		HitCapsules.Add(CapsuleToAdd);
-		
-		// Bind the overlap events for this specific capsule
-		CapsuleToAdd->OnComponentBeginOverlap.AddDynamic(this, &AItem::OnHitCapsuleBeginOverlap);
-		CapsuleToAdd->OnComponentEndOverlap.AddDynamic(this, &AItem::OnHitCapsuleEndOverlap);
-	}
-}
+	/**
+	 * Sets the state of the weapon.
+	 * @param NewState The new state (Passive or Aggressive).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Weapon|State")
+	void SetWeaponState(EWeaponState NewState);
 
-void AItem::OnHitCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
-{
-	// Ignore the owner of the item (e.g., the character holding it) and the item itself.
-	if (OtherActor == GetOwner() || OtherActor == this)
-	{
-		return;
-	}
+	/** Returns the current state of the weapon. */
+	UFUNCTION(BlueprintCallable, Category = "Weapon|State")
+	EWeaponState GetWeaponState() const { return CurrentWeaponState; }
 
-	// Add the actor to the list if it's not already in it
-	if (!OverlappingActors.Contains(OtherActor))
-	{
-		OverlappingActors.Add(OtherActor);
-		// Send an event that a new actor is overlapping
-		OnItemOverlap.Broadcast(OtherActor, true);
-	}
-}
+protected:
+	virtual void BeginPlay() override;
 
-void AItem::OnHitCapsuleEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
-{
-    // Ignore the owner of the item (e.g., the character holding it) and the item itself.
-	if (OtherActor == GetOwner() || OtherActor == this)
-	{
-		return;
-	}
+	// The damage this weapon causes per hit.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Combat")
+	float Damage;
 
-	// Remove the actor from the list
-	if (OverlappingActors.Remove(OtherActor) > 0)
-	{
-		// Send an event that the actor is no longer overlapping
-		OnItemOverlap.Broadcast(OtherActor, false);
-	}
-}
+	// If true, the weapon will not damage its owner.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Combat")
+	bool bIgnoreOwner = true;
+	
+	// A list of specific actor classes to ignore during collision checks.
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Combat")
+    TArray<TSubclassOf<AActor>> IgnoredActorClasses;
+
+private:
+	// The current state of the weapon. Passive by default.
+	UPROPERTY(VisibleAnywhere, Category = "Weapon|State")
+	EWeaponState CurrentWeaponState;
+
+	// Function that is called when the mesh component begins to overlap with another actor.
+	UFUNCTION()
+	void OnMeshBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
+
+	// A list of actors that have already received damage in this "attack swing"
+	// to prevent them from being hit multiple times per attack.
+	UPROPERTY()
+	TArray<TObjectPtr<AActor>> DamagedActorsInSwing;
+};
