@@ -14,9 +14,9 @@
 #include "Animation/AnimInstance.h"
 #include "Kismet/GameplayStatics.h" // For ApplyDamage
 #include "Components/ChaosAttributes.h" // For accessing Chaos resource
-#include "Core/ChaosGameMode.h" // CORRECTED: For GameMode access to handle Game Over
-#include "Characters/Enemy/ChaosEnemy.h" // ADDED: To recognize AChaosEnemy type in melee attack
-
+#include "Core/ChaosGameMode.h" // For GameMode access to handle Game Over
+#include "Characters/Enemy/ChaosEnemy.h" // To recognize AChaosEnemy type in melee attack
+#include "Items/Weapons/Weapon.h" // Include Weapon
 
 // NO CHANGES ARE NEEDED IN THIS FILE (Original user comment, adapted here)
 // The include path above correctly finds the header.
@@ -111,10 +111,13 @@ void AChaosCharacter::SetupPlayerInputComponent(UInputComponent *PlayerInputComp
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AChaosCharacter::Look);
 		EnhancedInputComponent->BindAction(DashAction, ETriggerEvent::Started, this, &AChaosCharacter::StartDash);
 
-		// Input binding for the melee attack
-		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AChaosCharacter::AttackMelee);
+		// Input binding for the Attack now calls the overwritten Function (from ChaosCharacterBase)
+		EnhancedInputComponent->BindAction(AttackAction, ETriggerEvent::Started, this, &AChaosCharacter::StartAttack);
+		
+		// Added: Input Keybinding for Weapon Swapping
+		EnhancedInputComponent->BindAction(SwapWeaponAction, ETriggerEvent::Started, this, &AChaosCharacter::HandleSwapWeapon);
 
-		// Added: Input binding for spell casting
+		// Input binding for spell casting
 		EnhancedInputComponent->BindAction(CastSpellAction, ETriggerEvent::Started, this, &AChaosCharacter::StartSpellCast);
 	}
 	else
@@ -319,116 +322,79 @@ void AChaosCharacter::ResetVaultCooldown()
 }
 
 // --- Melee System ---
-void AChaosCharacter::AttackMelee()
+void AChaosCharacter::StartAttack()
 {
-	// Check if the character can attack (e.g., no other attack active or global cooldown)
+	// Calls the Super Method (mainly for logging, if implemented)
+	Super::StartAttack();
+	
 	if (!bCanAttack || bIsVaulting)
 	{
 		return;
 	}
 
-	// If we are in a combo window, try to play the next montage
 	if (bInComboWindow)
 	{
-		// Advance the combo index, looping back to 0 if we exceed the array size
 		CurrentComboIndex = (CurrentComboIndex + 1) % MeleeAttackMontages.Num();
-		UE_LOG(LogChaosCharacter, Log, TEXT("Combo Attack! Playing montage index: %d"), CurrentComboIndex);
-	}
-	else // Not in combo window, start a new combo (or single attack)
-	{
-		CurrentComboIndex = 0; // Always start with the first montage for a new attack
-		UE_LOG(LogChaosCharacter, Log, TEXT("New Attack! Starting with montage index: %d"), CurrentComboIndex);
-	}
-
-	// Check if there are any montages in the array
-	if (MeleeAttackMontages.IsValidIndex(CurrentComboIndex) && MeleeAttackMontages[CurrentComboIndex])
-	{
-		UAnimMontage* MontageToPlay = MeleeAttackMontages[CurrentComboIndex];
-		
-		// Play the attack animation
-		PlayAnimMontage(MontageToPlay);
-
-		// Immediately disable attack capability until the current animation ends
-		// This prevents spamming the same attack before the animation has a chance to play.
-		bCanAttack = false;
-		// Removed the timer here. bCanAttack will now only be reset by OnAttackMontageEnded.
-		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_GlobalAttackCooldown); // Clear any existing timer just in case
-
-		// Reset the combo window timer (it will be started by OnAttackMontageEnded)
-		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_ComboWindow);
-		bInComboWindow = false; // Reset for now, will be set true on montage end
-
-		// Perform a simple sphere trace to find enemies in melee range and deal damage.
-		// This is a very simplified hitbox, which should be refined later with Animation Notifies.
-		FVector StartLocation = GetActorLocation() + GetActorForwardVector() * GetCapsuleComponent()->GetScaledCapsuleRadius();
-		FVector EndLocation = StartLocation + GetActorForwardVector() * 150.0f; // Range of the attack
-		float AttackRadius = 75.0f; // Radius of the hitbox
-
-		TArray<FHitResult> HitResults;
-		FCollisionQueryParams QueryParams;
-		QueryParams.AddIgnoredActor(this); // Ignore the player character itself
-
-		bool bHit = GetWorld()->SweepMultiByChannel(
-			HitResults,
-			StartLocation,
-			EndLocation,
-			FQuat::Identity,
-			ECC_Pawn, // Check collisions with other Pawns (characters)
-			FCollisionShape::MakeSphere(AttackRadius),
-			QueryParams
-		);
-
-		if (bHit)
-		{
-			for (const FHitResult& Hit : HitResults)
-			{
-				// Attempt to cast to AChaosEnemy to ensure we only hit enemies
-				AChaosEnemy* HitEnemy = Cast<AChaosEnemy>(Hit.GetActor());
-				if (HitEnemy) // Only deal damage if it's an enemy
-				{
-					UGameplayStatics::ApplyDamage(
-						HitEnemy, // Apply damage to the enemy
-						MeleeDamage,
-						GetController(),
-						this,
-						UDamageType::StaticClass() // Generic damage type, can be customized later
-					);
-					UE_LOG(LogChaosCharacter, Log, TEXT("Player Melee attack hit: %s"), *GetNameSafe(HitEnemy));
-				}
-			}
-		}
-		
-		// Optional: Debug visualization of the attack area
-		// DrawDebugSphere(GetWorld(), (StartLocation + EndLocation) / 2.0f, AttackRadius, 16, FColor::Red, false, MontageToPlay->GetPlayLength(), 0, 5.0f);
 	}
 	else
 	{
-		UE_LOG(LogChaosCharacter, Warning, TEXT("MeleeAttackMontages array is empty or index %d is invalid for %s"), CurrentComboIndex, *GetNameSafe(this));
+		CurrentComboIndex = 0;
+	}
+
+	if (MeleeAttackMontages.IsValidIndex(CurrentComboIndex) && MeleeAttackMontages[CurrentComboIndex])
+	{
+		UAnimMontage* MontageToPlay = MeleeAttackMontages[CurrentComboIndex];
+		PlayAnimMontage(MontageToPlay);
+
+		bCanAttack = false;
+		bInComboWindow = false; 
+		GetWorld()->GetTimerManager().ClearTimer(TimerHandle_ComboWindow);
+
+		// IMPORTANT: The Damage Logic (Sphere Trace) was removed here.
+		// The Weapon is now controlled by Anim Notifies.
+		// These Notifies should call the Enable-and DisableWeaponHitDetection() Functions.
+	}
+	else
+	{
+		UE_LOG(LogChaosCharacter, Warning, TEXT("MeleeAttackMontages array is empty or index %d is invalid."), CurrentComboIndex);
 	}
 }
 
-// Called when an attack montage finishes playing
+void AChaosCharacter::EnableWeaponHitDetection()
+{
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetWeaponState(EWeaponState::Aggressive);
+		UE_LOG(LogChaosCharacter, Log, TEXT("Weapon hit detection ENABLED"));
+	}
+}
+
+void AChaosCharacter::DisableWeaponHitDetection()
+{
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetWeaponState(EWeaponState::Passive);
+		UE_LOG(LogChaosCharacter, Log, TEXT("Weapon hit detection DISABLED"));
+	}
+}
+
 void AChaosCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted)
 {
-	// Check if the ended montage is one of our melee attack montages
 	if (MeleeAttackMontages.Contains(Montage))
 	{
-		// Only open the combo window if the montage was NOT interrupted
+		// Set the Weapon to Passive ALWAYS at the end of an Attack, if it was Canceled or not.
+		DisableWeaponHitDetection();
+		
 		if (!bInterrupted)
 		{
 			bInComboWindow = true;
 			GetWorld()->GetTimerManager().SetTimer(TimerHandle_ComboWindow, this, &AChaosCharacter::ResetCombo, ComboWindowDuration, false);
-			UE_LOG(LogChaosCharacter, Log, TEXT("Attack montage ended. Combo window open."));
 		}
 		else
 		{
-			// If interrupted, reset combo immediately
 			ResetCombo();
-			UE_LOG(LogChaosCharacter, Log, TEXT("Attack montage interrupted. Combo reset."));
 		}
 		
-		// Always reset the global attack cooldown when the montage officially ends or is interrupted.
-		// This is now the ONLY place where bCanAttack is set back to true for attacks.
 		ResetAttackCooldown();
 	}
 }
@@ -436,17 +402,21 @@ void AChaosCharacter::OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrup
 void AChaosCharacter::ResetAttackCooldown()
 {
 	bCanAttack = true;
-	UE_LOG(LogChaosCharacter, Log, TEXT("Attack cooldown reset."));
 }
 
 void AChaosCharacter::ResetCombo()
 {
 	bInComboWindow = false;
-	CurrentComboIndex = 0; // Reset combo to the first attack
-	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_ComboWindow); // Clear the timer as combo is reset
-	UE_LOG(LogChaosCharacter, Log, TEXT("Combo state reset."));
+	CurrentComboIndex = 0;
+	GetWorld()->GetTimerManager().ClearTimer(TimerHandle_ComboWindow);
 }
 
+// --- Weapon System ---
+void AChaosCharacter::HandleSwapWeapon()
+{
+	// Calls the new Base-Function.
+	SwapToNextWeapon();
+}
 
 // --- Spell Casting System ---
 void AChaosCharacter::StartSpellCast()
@@ -508,7 +478,7 @@ void AChaosCharacter::StartSpellCast()
 	}
 }
 
-// Added: Implementation of the function to reset the spell cast cooldown
+// Implementation of the function to reset the spell cast cooldown
 void AChaosCharacter::ResetSpellCastCooldown()
 {
 	bCanCastSpell = true;

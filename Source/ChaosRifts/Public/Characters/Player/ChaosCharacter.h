@@ -40,7 +40,10 @@ class AChaosCharacter : public AChaosCharacterBase
 public:
 	AChaosCharacter();
 
-	//~ Animation Interface
+	//~==============================================================================================
+	//~ Animation Interface - Functions called from Animation Blueprints
+	//~==============================================================================================
+
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Animation")
 	float GetSpeed() const;
 
@@ -50,7 +53,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Animation")
 	bool IsVaulting() const { return bIsVaulting; }
     
-	//~ End Animation Interface
+	//~==============================================================================================
+	//~ Weapon System Interface - Functions called from Animation Notifies
+	//~==============================================================================================
+
+	/** Activates the weapon's hit detection (sets it to 'Aggressive'). Should be called via AnimNotify. */
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapon")
+	void EnableWeaponHitDetection();
+
+	/** Deactivates the weapon's hit detection (sets it to 'Passive'). Should be called via AnimNotify. */
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapon")
+	void DisableWeaponHitDetection();
 
 protected:
 	//~ Begin AActor Interface
@@ -66,6 +79,9 @@ protected:
 	// We mark it as BlueprintNativeEvent because the base class does, and it's good practice
 	// to keep the override consistent, even if its main use here is to trigger Game Over.
 	virtual void Die_Implementation() override;
+
+	// Overide the BaseAttack to implement Combo Logic.
+	virtual void StartAttack() override;
 
 private: // Changed to private for strict encapsulation, but properties are UPROPERTY so accessible in Blueprint
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Camera", meta = (AllowPrivateAccess = "true"))
@@ -95,7 +111,11 @@ protected: // Changed to protected for easier access in Blueprint subclasses if 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
 	TObjectPtr<UInputAction> AttackAction;
 
-	// Added: Input Action for spell casting
+	// Added: Input for Weaponswapping
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
+	TObjectPtr<UInputAction> SwapWeaponAction;
+
+	// Input Action for spell casting
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category="Chaos|Input")
 	TObjectPtr<UInputAction> CastSpellAction;
 
@@ -104,10 +124,10 @@ protected: // Changed to protected for easier access in Blueprint subclasses if 
 	void Look(const FInputActionValue& Value);
 	void StartDash();
 	
-	// Handler for the melee attack
-	void AttackMelee();
+	// Handler für Waffenwechsel
+	void HandleSwapWeapon();
 
-	// Added: Handler for spell casting
+	// Handler for spell casting
 	void StartSpellCast();
 
 public: // Changed to public for Blueprint Callable functions
@@ -178,19 +198,15 @@ protected: // Changed to protected for easier access in Blueprint subclasses
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation")
 	TArray<TObjectPtr<UAnimMontage>> MeleeAttackMontages;
 
-	// Added: Animation Montage for spell casting
+	// Animation Montage for spell casting
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Animation")
 	TObjectPtr<UAnimMontage> SpellCastMontage;
 
-	// Damage for the melee attack
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Combat") // Changed to BlueprintReadOnly
-	float MeleeDamage = 30.f;
-
-	// Added: Chaos cost for spell casting
+	// Chaos cost for spell casting
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Combat")
 	float SpellChaosCost = 25.f;
 
-	// Added: Projectile class to spawn for spells
+	// Projectile class to spawn for spells
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Chaos|Combat")
 	TSubclassOf<AActor> SpellProjectileClass;
 
@@ -228,29 +244,24 @@ private:
 	FTimerHandle TimerHandle_VaultCooldown;
 
 	// Controls whether the character can attack
-	// This will now specifically mean if any attack is in progress or on a global cooldown.
 	bool bCanAttack = true; 
-	FTimerHandle TimerHandle_GlobalAttackCooldown; // Renamed for clarity
-
+	
 	// --- Melee Combo System ---
-	bool bInComboWindow = false; // True if the character just finished an attack and can start a combo
-	int32 CurrentComboIndex = 0; // The index of the next montage to play in the combo sequence
-	FTimerHandle TimerHandle_ComboWindow; // Timer for the combo input window
+	bool bInComboWindow = false; 
+	int32 CurrentComboIndex = 0; 
+	FTimerHandle TimerHandle_ComboWindow;
 
-	// Resets the combo state
 	void ResetCombo();
-	// Called when an attack montage finishes playing, to open the combo window
 	UFUNCTION()
 	void OnAttackMontageEnded(UAnimMontage* Montage, bool bInterrupted);
-
-	void ResetAttackCooldown(); // This will now reset bCanAttack
+	void ResetAttackCooldown();
 	
-	// Added: Controls whether the character can cast a spell
+	// Controls whether the character can cast a spell
 	bool bCanCastSpell = true;
 	FTimerHandle TimerHandle_SpellCastCooldown;
 	void ResetSpellCastCooldown(); // Added: Function to reset spell cast cooldown
 
-	// Added: A specific handler for player death, matching the OnDeath delegate signature.
+	// A specific handler for player death, matching the OnDeath delegate signature.
 	UFUNCTION() // UFUNCTION is required for delegates to bind successfully
 	void HandlePlayerDeath(AChaosCharacterBase* DeadCharacter);
 
