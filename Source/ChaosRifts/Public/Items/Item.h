@@ -39,9 +39,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Item|Collision")
 	void AddHitCapsule(UCapsuleComponent* CapsuleToAdd);
 
-	/** Gibt alle Actors zurück, die gerade mit diesem Item überlappen. */
+	/** * Gibt alle Actors zurück, die gerade mit DIESEM Item überlappen. 
+	 * Umbenannt von GetOverlappingActors, um Konflikt mit der Basis-AActor-Funktion zu vermeiden.
+	 */
 	UFUNCTION(BlueprintCallable, Category = "Item|Collision")
-	const TArray<AActor*>& GetOverlappingActors() const { return OverlappingActors; }
+	const TArray<AActor*>& GetItemOverlappingActors() const { return OverlappingActors; }
 
 protected:
 	virtual void BeginPlay() override;
