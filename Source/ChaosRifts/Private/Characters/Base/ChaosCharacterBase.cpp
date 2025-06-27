@@ -5,7 +5,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "Items/Weapons/Weapon.h" // Important: Include the new weapon class
+#include "Items/Weapons/Weapon.h"
 
 AChaosCharacterBase::AChaosCharacterBase()
 {
@@ -24,7 +24,7 @@ void AChaosCharacterBase::BeginPlay()
 
 void AChaosCharacterBase::SpawnAndEquipWeapons()
 {
-	// Destroy old weapons if this function is called again
+	// Destroy old weapon actors if this function is called again
 	for (AWeapon* Weapon : Weapons)
 	{
 		if (Weapon)
@@ -34,25 +34,28 @@ void AChaosCharacterBase::SpawnAndEquipWeapons()
 	}
 	Weapons.Empty();
 	CurrentWeapon = nullptr;
-    CurrentWeaponIndex = -1; // -1 means no weapon is active
+    CurrentWeaponIndex = -1;
 
-	if (DefaultWeapons.Num() > 0)
+	// Proceed if we have a valid loadout configured
+	if (DefaultWeaponLoadout.Num() > 0)
 	{
-		// We have valid weapon classes to spawn
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 		SpawnParams.Instigator = this;
 
-		for (TSubclassOf<AWeapon> WeaponClass : DefaultWeapons)
+		// Iterate through the loadout configuration
+		for (const FWeaponLoadoutInfo& LoadoutInfo : DefaultWeaponLoadout)
 		{
-			if (WeaponClass)
+			if (LoadoutInfo.WeaponClass)
 			{
-				AWeapon* NewWeapon = GetWorld()->SpawnActor<AWeapon>(WeaponClass, SpawnParams);
+				// Spawn the weapon
+				AWeapon* NewWeapon = GetWorld()->SpawnActor<AWeapon>(LoadoutInfo.WeaponClass, SpawnParams);
 				if (NewWeapon)
 				{
+					// Add the new weapon instance to our runtime array
 					Weapons.Add(NewWeapon);
-					// Socket to which the weapon is attached
-					NewWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("WeaponSocket"));
+					// Attach the weapon to its designated "sheathed" or "holstered" socket
+					AttachWeaponToSocket(NewWeapon, LoadoutInfo.SheathedSocketName);
 					NewWeapon->SetActorHiddenInGame(true); // Hide the weapon initially
 				}
 			}
@@ -60,7 +63,7 @@ void AChaosCharacterBase::SpawnAndEquipWeapons()
 
 		if (Weapons.Num() > 0)
 		{
-			// We have spawned at least one weapon, so equip the first one.
+			// Equip the first weapon in the loadout by default
 			EquipWeapon(0);
 		}
 	}
@@ -68,31 +71,82 @@ void AChaosCharacterBase::SpawnAndEquipWeapons()
 
 void AChaosCharacterBase::EquipWeapon(int32 WeaponIndex)
 {
-	if (WeaponIndex < 0 || WeaponIndex >= Weapons.Num() || Weapons[WeaponIndex] == nullptr)
+	// Check for valid index and that the weapon instance exists
+	if (!Weapons.IsValidIndex(WeaponIndex) || Weapons[WeaponIndex] == nullptr)
 	{
-		// Invalid index or no weapons available
 		return;
 	}
 
-	// Hide the old weapon if one was present
-	if (CurrentWeapon)
+	// --- UNEQUIP OLD WEAPON ---
+	// If we already have a weapon equipped...
+	if (CurrentWeapon && DefaultWeaponLoadout.IsValidIndex(CurrentWeaponIndex))
 	{
+		// Get the loadout info for the CURRENTLY equipped weapon
+		const FWeaponLoadoutInfo& OldWeaponLoadout = DefaultWeaponLoadout[CurrentWeaponIndex];
+		// Attach it back to its sheathed position
+		AttachWeaponToSocket(CurrentWeapon, OldWeaponLoadout.SheathedSocketName);
+		// Hide it
 		CurrentWeapon->SetActorHiddenInGame(true);
 	}
 
-	CurrentWeapon = Weapons[WeaponIndex];
+	// --- EQUIP NEW WEAPON ---
+	// Get the new weapon and its loadout info
+	AWeapon* NewWeaponToEquip = Weapons[WeaponIndex];
+	const FWeaponLoadoutInfo& NewWeaponLoadout = DefaultWeaponLoadout[WeaponIndex];
+
+	// Update our state
+	CurrentWeapon = NewWeaponToEquip;
 	CurrentWeaponIndex = WeaponIndex;
-	CurrentWeapon->SetActorHiddenInGame(false); // Show the new weapon
+
+	// Attach the new weapon to the hand/equipped socket
+	AttachWeaponToSocket(CurrentWeapon, NewWeaponLoadout.EquippedSocketName);
+	// Make it visible
+	CurrentWeapon->SetActorHiddenInGame(false);
 }
+
+void AChaosCharacterBase::AttachWeaponToSocket(AWeapon* WeaponToAttach, const FName& SocketName)
+{
+	if (!WeaponToAttach || SocketName.IsNone())
+	{
+		return;
+	}
+
+	// Attachment rules - we want the weapon to be welded to the socket, ignoring its own transform.
+	const FAttachmentTransformRules AttachmentRules(EAttachmentRule::SnapToTarget, EAttachmentRule::SnapToTarget, EAttachmentRule::KeepWorld, false);
+
+	// --- Smart Socket/Component Search ---
+	// First, check if a USceneComponent with the given name exists on this character.
+	TArray<USceneComponent*> SceneComponents;
+	GetComponents<USceneComponent>(SceneComponents);
+	USceneComponent* TargetComponent = nullptr;
+
+	for (USceneComponent* SceneComp : SceneComponents)
+	{
+		if (SceneComp->GetFName() == SocketName)
+		{
+			TargetComponent = SceneComp;
+			break;
+		}
+	}
+
+	if (TargetComponent)
+	{
+		// We found a dedicated Scene Component, attach to it.
+		WeaponToAttach->AttachToComponent(TargetComponent, AttachmentRules);
+	}
+	else
+	{
+		// Fallback: If no Scene Component was found, attach to a socket on the main skeletal mesh.
+		WeaponToAttach->AttachToComponent(GetMesh(), AttachmentRules, SocketName);
+	}
+}
+
 
 void AChaosCharacterBase::StartAttack()
 {
-	// The logic for an attack would be implemented here.
-	// For example: play animation, enable weapon collision etc.
-	// UE_LOG(LogTemp, Warning, TEXT("Attack started by %s"), *GetNameSafe(this));
 	if (CurrentWeapon)
 	{
-		// This will be expanded in the future, e.g. to switch the weapon to "aggressive" state.
+		// Logic is now handled in AChaosCharacter via anim notifies
 	}
 }
 

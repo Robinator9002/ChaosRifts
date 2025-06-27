@@ -4,14 +4,36 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
-#include "Items/Weapons/Weapon.h" // Include the full weapon definition
+#include "Items/Weapons/Weapon.h"
 #include "ChaosCharacterBase.generated.h"
 
 class UChaosAttributes;
-// No longer need the forward declaration: class AWeapon; 
 
 // A delegate that is broadcast when a character dies.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeathDelegate, AChaosCharacterBase*, DeadCharacter);
+
+/**
+ * NEW: A struct to define a weapon and its attachment sockets.
+ * This will be configured in Blueprints to define a character's loadout.
+ */
+USTRUCT(BlueprintType)
+struct FWeaponLoadoutInfo
+{
+    GENERATED_BODY()
+
+    // The Blueprint of the weapon to spawn.
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Loadout")
+    TSubclassOf<AWeapon> WeaponClass;
+
+    // The name of the socket/component for the weapon when HOLSTERED or SHEATHED.
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Loadout")
+    FName SheathedSocketName;
+
+    // The name of the socket/component for the weapon when ACTIVELY EQUIPPED.
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Weapon Loadout")
+    FName EquippedSocketName;
+};
+
 
 /**
  * The base class for all characters, now with an extensible weapon system.
@@ -47,42 +69,46 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
 	AWeapon* GetCurrentWeapon() const;
 	
-	//~==============================================================================================
-	//~ Weapon System
-	//~==============================================================================================
-	
 protected:
     //~ Begin AActor Interface
-    virtual void BeginPlay() override; // <-- THIS WAS THE MISSING DECLARATION
+    virtual void BeginPlay() override;
     //~ End AActor Interface
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Character")
 	TObjectPtr<UChaosAttributes> AttributesComponent;
 
-	/** The weapon classes that this character should receive by default when spawning. */
-	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Combat|Weapons")
-	TArray<TSubclassOf<AWeapon>> DefaultWeapons;
+	//~==============================================================================================
+	//~ NEW WEAPON SYSTEM PROPERTIES
+	//~==============================================================================================
 
-	/** The array containing the instances of the spawned weapons. */
+	/** The character's default weapon loadout, configured in Blueprints. */
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Combat|Weapons")
+	TArray<FWeaponLoadoutInfo> DefaultWeaponLoadout;
+
+	/** The array containing the RUNTIME INSTANCES of the spawned weapons. */
 	UPROPERTY(BlueprintReadOnly, Category = "Chaos|Combat|Weapons")
 	TArray<TObjectPtr<AWeapon>> Weapons;
 
-	/** A pointer to the currently equipped weapon. */
+	/** A pointer to the currently equipped weapon instance. */
 	UPROPERTY(BlueprintReadOnly, Category = "Chaos|Combat|Weapons")
 	TObjectPtr<AWeapon> CurrentWeapon;
 	
-	/** The index of the currently equipped weapon in the 'Weapons' array. */
+	/** The index of the currently equipped weapon in the 'Weapons' and 'DefaultWeaponLoadout' arrays. */
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Chaos|Combat|Weapons")
 	int32 CurrentWeaponIndex;
-
+	
+	//~==============================================================================================
+	//~ NEW WEAPON SYSTEM FUNCTIONS
+	//~==============================================================================================
+	
 	/**
-	 * Spawns the weapons from the DefaultWeapons array and attaches them to the character.
+	 * Spawns the weapons from the DefaultWeaponLoadout array and attaches them to their sheathed sockets.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
 	virtual void SpawnAndEquipWeapons();
 
 	/**
-	 * Equips a weapon from the 'Weapons' array.
+	 * Equips a weapon from the 'Weapons' array, moving it from its sheathed socket to its equipped socket.
 	 * @param WeaponIndex The index of the weapon to be equipped.
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
@@ -95,4 +121,13 @@ protected:
 	/** Switches to the previous available weapon in the inventory. */
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
 	void SwapToPreviousWeapon();
+
+private:
+	/**
+	 * Helper function to attach a weapon to a specified socket.
+	 * It intelligently searches for a USceneComponent first, then falls back to a skeletal mesh socket.
+	 * @param WeaponToAttach The weapon actor to attach.
+	 * @param SocketName The name of the SceneComponent or skeletal socket.
+	 */
+	void AttachWeaponToSocket(AWeapon* WeaponToAttach, const FName& SocketName);
 };
