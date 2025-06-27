@@ -52,6 +52,10 @@ public:
 	//~==============================================================================================
 	
 protected:
+    //~ Begin AActor Interface
+    virtual void BeginPlay() override; // <-- THIS WAS THE MISSING DECLARATION
+    //~ End AActor Interface
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Character")
 	TObjectPtr<UChaosAttributes> AttributesComponent;
 
@@ -73,7 +77,6 @@ protected:
 
 	/**
 	 * Spawns the weapons from the DefaultWeapons array and attaches them to the character.
-	 * Must be called in derived classes (usually in BeginPlay).
 	 */
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
 	virtual void SpawnAndEquipWeapons();
