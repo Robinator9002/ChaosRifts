@@ -7,6 +7,7 @@
 #include "Item.generated.h"
 
 class UCapsuleComponent;
+class UStaticMeshComponent; // Forward declaration for the new mesh component
 
 // Delegate that is triggered when the overlap status of an item changes.
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemOverlapSignature, AActor*, OverlappedActor, bool, bIsOverlapping);
@@ -14,6 +15,7 @@ DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnItemOverlapSignature, AActor*, O
 /**
  * AItem is the base class for all pickup-able or interactive objects in the world.
  * It implements a generic collision detection mechanic with multiple hit capsules.
+ * Now uses a Static Mesh as its root.
  */
 UCLASS(Blueprintable)
 class CHAOSRIFTS_API AItem : public AActor
@@ -23,9 +25,9 @@ class CHAOSRIFTS_API AItem : public AActor
 public:	
 	AItem();
 
-	// The root component of the item. Often a StaticMesh or SkeletalMesh.
+	// The root component of the item, now a Static Mesh.
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Item")
-	TObjectPtr<USceneComponent> SceneRoot;
+	TObjectPtr<UStaticMeshComponent> ItemMesh;
 	
 	// Delegate that is called when an Actor enters or leaves one of the hit capsules.
 	UPROPERTY(BlueprintAssignable, Category = "Item|Events")
@@ -47,6 +49,14 @@ public:
 
 protected:
 	virtual void BeginPlay() override;
+
+	// If true, the item will not generate overlap events with its owner.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Collision")
+	bool bIgnoreOwner = true;
+
+	// A list of specific actor instances to ignore during overlap checks.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Item|Collision", meta = (DisplayName = "Ignored Actor Instances"))
+	TArray<TObjectPtr<AActor>> IgnoredActors;
 
 	// Array for storing all actors that are currently overlapping with one of the hit capsules.
 	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Item|State")

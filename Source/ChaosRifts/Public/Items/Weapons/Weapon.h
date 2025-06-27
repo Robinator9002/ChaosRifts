@@ -18,6 +18,7 @@ enum class EWeaponState : uint8
 /**
  * AWeapon is a special type of AItem that can cause damage.
  * It has states to control when it actively deals damage.
+ * It inherits its StaticMesh and base collision properties from AItem.
  */
 UCLASS()
 class CHAOSRIFTS_API AWeapon : public AItem
@@ -45,9 +46,7 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Combat")
 	float Damage;
 
-	// If true, the weapon will not damage its owner.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Combat")
-	bool bIgnoreOwner = true;
+	// NOTE: bIgnoreOwner is now inherited from the AItem base class.
 	
 	// A list of specific actor classes to ignore during collision checks.
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Weapon|Combat")

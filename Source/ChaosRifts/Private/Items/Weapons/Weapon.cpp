@@ -10,7 +10,7 @@ AWeapon::AWeapon()
 	// Initial state and damage
 	CurrentWeaponState = EWeaponState::Passive;
 	Damage = 25.f;
-	bIgnoreOwner = true;
+	// bIgnoreOwner is now set in the base AItem class, so no need to set it here.
 }
 
 void AWeapon::BeginPlay()
@@ -18,6 +18,7 @@ void AWeapon::BeginPlay()
 	Super::BeginPlay();
 
 	// Bind our handle function to the mesh's overlap delegate.
+	// ItemMesh is now guaranteed to exist from the AItem base class.
 	if (ItemMesh)
 	{
 		ItemMesh->OnComponentBeginOverlap.AddDynamic(this, &AWeapon::OnMeshBeginOverlap);
@@ -46,27 +47,34 @@ void AWeapon::OnMeshBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActo
 
 	AActor* MyOwner = GetOwner();
 
-	// Check if we should ignore the owner
+	// --- Enhanced Collision Ignore Logic ---
+	// Check if we should ignore the owner (uses bIgnoreOwner from AItem).
 	if (bIgnoreOwner && OtherActor == MyOwner)
 	{
 		return;
 	}
+	
+	// Check if the actor instance is in the inherited ignored list.
+	if (IgnoredActors.Contains(OtherActor))
+	{
+		return;
+	}
+
+	// Check if the overlapped actor's class is in the weapon's specific ignored list.
+    for (TSubclassOf<AActor> ClassToIgnore : IgnoredActorClasses)
+    {
+        if (OtherActor != nullptr && OtherActor->IsA(ClassToIgnore))
+        {
+            return;
+        }
+    }
+	// --- End Enhanced Logic ---
 
 	// Prevent hitting the same actor multiple times in the same swing.
 	if (DamagedActorsInSwing.Contains(OtherActor))
 	{
 		return;
 	}
-
-	// Check if the overlapped actor's class is in the ignored list.
-    for (TSubclassOf<AActor> ClassToIgnore : IgnoredActorClasses)
-    {
-        if (OtherActor->IsA(ClassToIgnore))
-        {
-            return;
-        }
-    }
-
 
 	// Ensure the owner of the weapon is valid before dealing damage.
 	if (!MyOwner)

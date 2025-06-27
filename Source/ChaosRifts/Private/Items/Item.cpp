@@ -2,13 +2,15 @@
 
 #include "Items/Item.h"
 #include "Components/CapsuleComponent.h"
+#include "Components/StaticMeshComponent.h" // Include the Static Mesh Component header
 
 AItem::AItem()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	SceneRoot = CreateDefaultSubobject<USceneComponent>(TEXT("SceneRoot"));
-	RootComponent = SceneRoot;
+	// Create the static mesh component and set it as the root.
+	ItemMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ItemMesh"));
+	RootComponent = ItemMesh;
 }
 
 void AItem::BeginPlay()
@@ -39,11 +41,23 @@ void AItem::AddHitCapsule(UCapsuleComponent* CapsuleToAdd)
 
 void AItem::OnHitCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult)
 {
-	// Ignore the owner of the item (e.g., the character holding it) and the item itself.
-	if (OtherActor == GetOwner() || OtherActor == this)
+	// --- New Collision Ignore Logic ---
+	// Ignore the item itself.
+	if (OtherActor == this)
 	{
 		return;
 	}
+	// Ignore the owner if the flag is set.
+	if (bIgnoreOwner && OtherActor == GetOwner())
+	{
+		return;
+	}
+	// Ignore any actor instance present in the IgnoredActors array.
+	if (IgnoredActors.Contains(OtherActor))
+	{
+		return;
+	}
+	// --- End New Logic ---
 
 	// Add the actor to the list if it's not already in it
 	if (!OverlappingActors.Contains(OtherActor))
@@ -57,7 +71,7 @@ void AItem::OnHitCapsuleBeginOverlap(UPrimitiveComponent* OverlappedComponent, A
 void AItem::OnHitCapsuleEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex)
 {
     // Ignore the owner of the item (e.g., the character holding it) and the item itself.
-	if (OtherActor == GetOwner() || OtherActor == this)
+	if ((bIgnoreOwner && OtherActor == GetOwner()) || OtherActor == this)
 	{
 		return;
 	}
