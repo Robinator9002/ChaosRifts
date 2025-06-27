@@ -7,14 +7,13 @@
 #include "ChaosCharacterBase.generated.h"
 
 class UChaosAttributes;
+class AWeapon; // Forward declaration für die Waffenklasse
 
 // A delegate that is broadcast when a character dies.
-// Can be subscribed to by other systems to react to death (e.g., UI updates, AI reactions).
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnDeathDelegate, AChaosCharacterBase*, DeadCharacter);
 
 /**
- * The base class for all characters in ChaosRifts, including the player, enemies, and NPCs.
- * It contains shared functionality, most importantly the Attributes component, and basic combat logic.
+ * Die Basisklasse für alle Charaktere, jetzt mit einem erweiterbaren Waffensystem.
  */
 UCLASS(abstract)
 class CHAOSRIFTS_API AChaosCharacterBase : public ACharacter
@@ -24,42 +23,74 @@ class CHAOSRIFTS_API AChaosCharacterBase : public ACharacter
 public:
 	AChaosCharacterBase();
 
-	/** Returns the Attributes component for easy access from other classes. */
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Character")
 	FORCEINLINE UChaosAttributes* GetAttributes() const { return AttributesComponent; }
 
 	//~==============================================================================================
-	//~ Combat Interface - Basic combat and damage functions
+	//~ Combat Interface
 	//~==============================================================================================
 
-	/**
-	 * Overrides the standard TakeDamage function from AActor.
-	 * This is the central point where all incoming damage is processed.
-	 */
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
-	/**
-	 * Function called when this character dies (health falls to 0).
-	 * This is a virtual function that can be overridden by derived classes
-	 * to implement specific death animations, effects, or gameplay consequences.
-	 */
 	UFUNCTION(BlueprintNativeEvent, Category = "Chaos|Combat")
 	void Die();
-	virtual void Die_Implementation(); // Implementation of the BlueprintNativeEvent function
+	virtual void Die_Implementation();
 
-	/**
-	 * Starts an attack. This is a virtual function that can be overridden by derived classes
-	 * to implement specific attack animations and logic.
-	 */
 	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat")
 	virtual void StartAttack();
 
-	// Delegate broadcast when this character dies.
 	UPROPERTY(BlueprintAssignable, Category = "Chaos|Combat")
 	FOnDeathDelegate OnDeath;
+	
+	/** Gibt die aktuell ausgerüstete Waffe zurück. */
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat")
+	AWeapon* GetCurrentWeapon() const;
 
 protected:
-	/** The component that manages all gameplay attributes for this character. */
+	virtual void BeginPlay() override;
+	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Chaos|Components", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UChaosAttributes> AttributesComponent;
+
+	//~==============================================================================================
+	//~ Weapon System
+	//~==============================================================================================
+
+	/** Eine Liste von Waffenklassen, die dieser Charakter bei Spielbeginn erhalten soll. */
+	UPROPERTY(EditDefaultsOnly, Category = "Chaos|Combat|Weapons")
+	TArray<TSubclassOf<AWeapon>> DefaultWeapons;
+
+	/** Das Array, das die Instanzen der gespawnten Waffen enthält. */
+	UPROPERTY(BlueprintReadOnly, Category = "Chaos|Combat|Weapons")
+	TArray<TObjectPtr<AWeapon>> Weapons;
+
+	/** Ein Zeiger auf die aktuell ausgerüstete Waffe. */
+	UPROPERTY(BlueprintReadOnly, Category = "Chaos|Combat|Weapons")
+	TObjectPtr<AWeapon> CurrentWeapon;
+	
+	/** Der Index der aktuell ausgerüsteten Waffe im 'Weapons'-Array. */
+	UPROPERTY(VisibleInstanceOnly, BlueprintReadOnly, Category = "Chaos|Combat|Weapons")
+	int32 CurrentWeaponIndex;
+
+	/**
+	 * Spawnt die Waffen aus dem DefaultWeapons-Array und hängt sie an den Charakter.
+	 * Muss in abgeleiteten Klassen aufgerufen werden (normalerweise in BeginPlay).
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
+	virtual void SpawnAndEquipWeapons();
+
+	/**
+	 * Rüstet eine Waffe aus dem 'Weapons'-Array aus.
+	 * @param WeaponIndex Der Index der Waffe, die ausgerüstet werden soll.
+	 */
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
+	virtual void EquipWeapon(int32 WeaponIndex);
+
+	/** Wechselt zur nächsten verfügbaren Waffe im Inventar. */
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
+	virtual void SwapToNextWeapon();
+	
+	/** Wechselt zur vorherigen verfügbaren Waffe im Inventar. */
+	UFUNCTION(BlueprintCallable, Category = "Chaos|Combat|Weapons")
+	virtual void SwapToPreviousWeapon();
 };

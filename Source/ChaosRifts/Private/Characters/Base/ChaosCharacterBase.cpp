@@ -1,75 +1,153 @@
 // Copyright Robinator Studios, Inc. All Rights Reserved.
 
 #include "Characters/Base/ChaosCharacterBase.h"
-#include "Components/ChaosAttributes.h" // For access to the attributes component
-#include "GameFramework/CharacterMovementComponent.h" // For movement control
-#include "Components/CapsuleComponent.h" // For collision control
-#include "Kismet/GameplayStatics.h" // For useful helper functions like UGameplayStatics::ApplyDamage
+#include "Components/ChaosAttributes.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "Items/Weapons/Weapon.h" // Wichtig: Die neue Waffenklasse inkludieren
 
-// Sets default values
 AChaosCharacterBase::AChaosCharacterBase()
 {
- 	// This character class doesn't need to tick on its own.
-	// Ticking is handled by derived classes if needed.
 	PrimaryActorTick.bCanEverTick = false;
-
-	// Create the Attributes component. Now every character that inherits from this base class
-	// will automatically have this component.
 	AttributesComponent = CreateDefaultSubobject<UChaosAttributes>(TEXT("AttributesComponent"));
+	CurrentWeaponIndex = -1; // -1 bedeutet, dass keine Waffe ausgerüstet ist
 }
+
+void AChaosCharacterBase::BeginPlay()
+{
+	Super::BeginPlay();
+	// Wir rufen das Spawnen der Waffen hier auf, damit jeder Character, der erbt,
+	// automatisch seine Waffen bekommt.
+	SpawnAndEquipWeapons();
+}
+
+void AChaosCharacterBase::SpawnAndEquipWeapons()
+{
+	// Zerstöre alte Waffen, falls diese Funktion erneut aufgerufen wird
+	for (AWeapon* Weapon : Weapons)
+	{
+		if (Weapon)
+		{
+			Weapon->Destroy();
+		}
+	}
+	Weapons.Empty();
+	CurrentWeapon = nullptr;
+
+	if (DefaultWeapons.Num() > 0)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = this;
+		SpawnParams.Instigator = this;
+
+		for (TSubclassOf<AWeapon> WeaponClass : DefaultWeapons)
+		{
+			if (WeaponClass)
+			{
+				AWeapon* NewWeapon = GetWorld()->SpawnActor<AWeapon>(WeaponClass, SpawnParams);
+				if (NewWeapon)
+				{
+					// Waffe an den Charakter attachen. Wir verwenden hier einen Socket namens "WeaponSocket".
+					// Du musst diesen Socket in deinem Charakter-Skelett erstellen!
+					// Für mehrere Waffen könnten Sockets wie "WeaponPrimarySocket", "WeaponHolsterSocket_Back" etc. verwendet werden.
+					// Für dieses erweiterbare System gehen wir von einem einzigen Ankerpunkt aus; das Hiding/Unhiding regelt die Darstellung.
+					NewWeapon->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetNotIncludingScale, FName("WeaponSocket"));
+					Weapons.Add(NewWeapon);
+				}
+			}
+		}
+
+		// Rüste die erste Waffe in der Liste standardmäßig aus.
+		EquipWeapon(0);
+	}
+}
+
+void AChaosCharacterBase::EquipWeapon(int32 WeaponIndex)
+{
+	if (!Weapons.IsValidIndex(WeaponIndex) || Weapons[WeaponIndex] == nullptr)
+	{
+		return;
+	}
+
+	// Verstecke die aktuell ausgerüstete Waffe, falls eine existiert
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetActorHiddenInGame(true);
+		CurrentWeapon->SetWeaponState(EWeaponState::Passive);
+	}
+
+	// Setze die neue Waffe als aktuell
+	CurrentWeaponIndex = WeaponIndex;
+	CurrentWeapon = Weapons[CurrentWeaponIndex];
+
+	// Zeige die neue Waffe und setze ihren Zustand zurück
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->SetActorHiddenInGame(false);
+		CurrentWeapon->SetWeaponState(EWeaponState::Passive);
+	}
+}
+
+void AChaosCharacterBase::SwapToNextWeapon()
+{
+	if (Weapons.Num() > 1)
+	{
+		const int32 NextWeaponIndex = (CurrentWeaponIndex + 1) % Weapons.Num();
+		EquipWeapon(NextWeaponIndex);
+	}
+}
+
+void AChaosCharacterBase::SwapToPreviousWeapon()
+{
+	if (Weapons.Num() > 1)
+	{
+		const int32 PrevWeaponIndex = (CurrentWeaponIndex - 1 + Weapons.Num()) % Weapons.Num();
+		EquipWeapon(PrevWeaponIndex);
+	}
+}
+
+AWeapon* AChaosCharacterBase::GetCurrentWeapon() const
+{
+	return CurrentWeapon;
+}
+
 
 float AChaosCharacterBase::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	// Call the base implementation to allow other components to process TakeDamage.
-	// The processed damage amount is the return value of the base class.
 	const float ActualDamage = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+	if (!AttributesComponent) return 0.0f;
+	
+	AttributesComponent->ApplyHealthChange(-ActualDamage);
 
-	// If we don't have an Attributes component, we can't take damage.
-	if (!AttributesComponent)
-	{
-		return 0.0f;
-	}
-
-	// Apply the actual damage to the character's health.
-	AttributesComponent->ApplyHealthChange(-ActualDamage); // Damage is a negative change
-
-	// Check if health has reached 0 or less.
 	if (AttributesComponent->GetHealth() <= 0.0f)
 	{
-		Die(); // Call the death function
+		Die();
 	}
-
-	return ActualDamage; // Return the actual damage applied
+	return ActualDamage;
 }
 
 void AChaosCharacterBase::Die_Implementation()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Character '%s' has died!"), *GetNameSafe(this));
-
-	// Optional: Disable collision and movement
+	
 	if (GetCharacterMovement())
 	{
-		GetCharacterMovement()->StopMovementImmediately();
 		GetCharacterMovement()->DisableMovement();
-		GetCharacterMovement()->SetComponentTickEnabled(false); // Stop movement component from ticking
 	}
 	if (GetCapsuleComponent())
 	{
 		GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
-	// Mesh can activate PhysX or a ragdoll here
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::PhysicsOnly);
 	GetMesh()->SetSimulatePhysics(true);
 
-	// Broadcast the OnDeath delegate so other systems can react.
 	OnDeath.Broadcast(this);
 }
 
 void AChaosCharacterBase::StartAttack()
 {
-	// Base implementation: A default attack animation could be played here,
-	// or logic that applies to all attacks.
-	// Derived classes like AChaosCharacter will override this
-	// to implement specific attacks.
+	// Die Logik hier wird nun spezifischer in den Child-Klassen sein,
+	// da sie die Animationen steuern, die wiederum die Waffe "scharf schalten".
 	UE_LOG(LogTemp, Log, TEXT("%s starts a generic attack."), *GetNameSafe(this));
 }
